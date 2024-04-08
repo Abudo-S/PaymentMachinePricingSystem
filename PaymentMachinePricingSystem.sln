@@ -5,11 +5,13 @@ VisualStudioVersion = 17.9.34616.47
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "WeekPayModelService", "WeekPayModelService\WeekPayModelService.csproj", "{751208A2-8828-41BA-A649-6BC831587786}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "DayRateService", "DayRateService\DayRateService.csproj", "{EDFFF2AE-F046-4884-8862-3D6E21F3800A}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "DayRateService", "DayRateService\DayRateService.csproj", "{EDFFF2AE-F046-4884-8862-3D6E21F3800A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TimeIntervalService", "TimeIntervalService\TimeIntervalService.csproj", "{8C310DF7-D03F-4F7F-A5A0-90D9762D53F3}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "TimeIntervalService", "TimeIntervalService\TimeIntervalService.csproj", "{8C310DF7-D03F-4F7F-A5A0-90D9762D53F3}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "RequestHandlerMiddleware", "RequestHandlerMiddleware\RequestHandlerMiddleware.csproj", "{8B1F4E42-0944-41CD-8733-929AB20767B6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RequestHandlerMiddleware", "RequestHandlerMiddleware\RequestHandlerMiddleware.csproj", "{8B1F4E42-0944-41CD-8733-929AB20767B6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibDTO", "LibDTO\LibDTO.csproj", "{72C6A8E9-E2DD-406F-BEC7-7542CE7E9959}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -33,6 +35,10 @@ Global
 		{8B1F4E42-0944-41CD-8733-929AB20767B6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{8B1F4E42-0944-41CD-8733-929AB20767B6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{8B1F4E42-0944-41CD-8733-929AB20767B6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{72C6A8E9-E2DD-406F-BEC7-7542CE7E9959}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{72C6A8E9-E2DD-406F-BEC7-7542CE7E9959}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{72C6A8E9-E2DD-406F-BEC7-7542CE7E9959}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{72C6A8E9-E2DD-406F-BEC7-7542CE7E9959}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
