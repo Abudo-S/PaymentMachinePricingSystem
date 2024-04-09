@@ -1,0 +1,13 @@
+syntax = "proto3";
+
+package GenericMessages;
+
+message AsyncResult {
+	bool Awk = 1;
+}
+
+message OperationResult {
+	int RequestIdentifier = 1;
+	bool Elaborated = 2;
+}
+

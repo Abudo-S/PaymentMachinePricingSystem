@@ -1,0 +1,96 @@
+syntax = "proto3";
+
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
+import "GenericMessages.proto";
+
+package MicroservicesProtos;
+
+service DayRate {
+  rpc UpsertDayRate (UpsertDayRateRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/UpsertDayRate"
+      body: "*"
+    };
+  }
+  rpc GetDayRate (GetDayRateRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/GetDayRate"
+      body: "*"
+    };
+  }
+  rpc GetDayRates (GetDayRatesRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/GetDayRates"
+      body: "*"
+    };
+  }
+  rpc DeleteDayRate (DeleteDayRateRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/DeleteDayRate"
+      body: "*"
+    };
+  }
+  rpc CalculateDayRangeFee (CalculateDayRangeFeeRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/CalculateDayRangeFee"
+      body: "*"
+    };
+  }
+}
+
+message UpsertDayRateRequest {
+   int32 RequestId = 1;
+   DayRate DayRate = 2;
+}
+
+message GetDayRateRequest {
+  int Id = 1;
+}
+
+message GetDayRatesRequest {
+}
+
+message DeleteDayRateRequest {
+  int Id = 1;
+}
+
+message CalculateDayRangeFeeRequest {
+  duration Start = 1;
+  duration End = 2;
+}
+
+message UpsertDayRateResponse {
+  GenericMessages.OperationResult Result = 1;
+  DayRate DayRate = 2;
+}
+
+message GetDayRateResponse {
+  GenericMessages.OperationResult Result = 1;
+  DayRate DayRate = 2;
+}
+
+message GetDayRatesResponse {
+  GenericMessages.OperationResult Result = 1;
+  repeated DayRate DayRate = 2;
+}
+
+message DeleteDayRateResponse {
+  GenericMessages.OperationResult Result = 1;
+}
+
+message CalculateDayRangeFeeResponse {
+  GenericMessages.OperationResult Result = 1;
+  double Fee = 2;
+}
+
+message DayRate {
+   int32 FreeMinutes = 1;
+   double MaxAmount = 2;
+   int CorrespondentDay = 3;
+}

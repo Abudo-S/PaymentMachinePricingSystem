@@ -1,12 +1,12 @@
 using Grpc.Core;
-using RequestHandlerMiddleware;
+using TimeIntervalService;
 
-namespace RequestHandlerMiddleware.Services
+namespace TimeIntervalService.Services
 {
-    public class GreeterService : Greeter.GreeterBase
+    public class TimeIntervalService : Greeter.GreeterBase
     {
-        private readonly ILogger<GreeterService> _logger;
-        public GreeterService(ILogger<GreeterService> logger)
+        private readonly ILogger<TimeIntervalService> _logger;
+        public TimeIntervalService(ILogger<TimeIntervalService> logger)
         {
             _logger = logger;
         }

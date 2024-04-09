@@ -1,12 +1,12 @@
 using Grpc.Core;
-using TimeIntervalService;
+using WeekPayModelService;
 
-namespace TimeIntervalService.Services
+namespace WeekPayModelService.Services
 {
-    public class GreeterService : Greeter.GreeterBase
+    public class WeekPayModelService : Greeter.GreeterBase
     {
-        private readonly ILogger<GreeterService> _logger;
-        public GreeterService(ILogger<GreeterService> logger)
+        private readonly ILogger<WeekPayModelService> _logger;
+        public WeekPayModelService(ILogger<WeekPayModelService> logger)
         {
             _logger = logger;
         }

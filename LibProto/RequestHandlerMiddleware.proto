@@ -1,12 +1,9 @@
 syntax = "proto3";
 
-option csharp_namespace = "DayRateService";
+import "GenericMessages.proto";
+package MiddlewareProtos;
 
-package greet;
-
-// The greeting service definition.
-service Greeter {
-  // Sends a greeting
+service RequestHandlerMiddleware {
   rpc SayHello (HelloRequest) returns (HelloReply);
 }
 

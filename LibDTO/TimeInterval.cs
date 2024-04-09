@@ -8,8 +8,9 @@ namespace LibDTO
 {
     public class TimeInterval
     {
+        public int Id { get; set; }
         public TimeSpan From {  get; set; }
         public TimeSpan To { get; set; }
-        public DayPriceRate DayPriceRate { get; set; }
+        public required DayPriceRate DayPriceRate { get; set; }
     }
 }

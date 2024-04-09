@@ -1,0 +1,27 @@
+﻿<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <Nullable>enable</Nullable>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <None Update="DayRate.proto">
+      <GrpcServices>Server</GrpcServices>
+    </None>
+    <None Update="RequestHandlerMiddleware.proto">
+      <GrpcServices>Server</GrpcServices>
+    </None>
+    <None Update="GenericMessages.proto">
+      <GrpcServices>Server</GrpcServices>
+    </None>
+    <None Update="TimeInterval.proto">
+      <GrpcServices>Server</GrpcServices>
+    </None>
+    <None Update="WeekPayModel.proto">
+      <GrpcServices>Server</GrpcServices>
+    </None>
+  </ItemGroup>
+
+</Project>

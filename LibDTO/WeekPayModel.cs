@@ -8,6 +8,7 @@ namespace LibDTO
 {
     public class WeekPayModel
     {
+        public int Id { get; set; }
         public required DayPriceRate MondayRate { get; set; }
         public required DayPriceRate TuesdayRate { get; set; }
         public required DayPriceRate wednesdayRate { get; set; }

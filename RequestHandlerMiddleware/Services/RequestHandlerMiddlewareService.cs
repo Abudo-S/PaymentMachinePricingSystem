@@ -1,12 +1,12 @@
-using DayRateService;
 using Grpc.Core;
+using RequestHandlerMiddleware;
 
-namespace DayRateService.Services
+namespace RequestHandlerMiddleware.Services
 {
-    public class GreeterService : Greeter.GreeterBase
+    public class RequestHandlerMiddlewareService : Greeter.GreeterBase
     {
-        private readonly ILogger<GreeterService> _logger;
-        public GreeterService(ILogger<GreeterService> logger)
+        private readonly ILogger<RequestHandlerMiddlewareService> _logger;
+        public RequestHandlerMiddlewareService(ILogger<RequestHandlerMiddlewareService> logger)
         {
             _logger = logger;
         }
