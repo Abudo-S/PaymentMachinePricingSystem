@@ -1,0 +1,23 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+
+package AuthenticationProtos;
+
+service AuthenticationProto {
+  rpc Authenticate (UserCreds) returns (UserCredsAnswer) {
+  option (google.api.http) = {
+      post: "/HttpAPI/Auth"
+      body: "*"
+    };
+  }
+}
+
+message UserCreds {
+    string Username = 1;
+    string Password = 2;
+}
+
+message UserCredsAnswer {
+    string Token = 1;
+}

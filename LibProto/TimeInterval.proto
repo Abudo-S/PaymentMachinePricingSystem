@@ -1,20 +1,113 @@
 syntax = "proto3";
 
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
 import "GenericMessages.proto";
+
 package MicroservicesProtos;
 
-// The greeting service definition.
 service TimeInterval {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply);
+  rpc UpsertTimeInterval (UpsertTimeIntervalRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/UpsertTimeInterval"
+      body: "*"
+    };
+  }
+  rpc GetTimeInterval (GetTimeIntervalRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/GetTimeInterval"
+      body: "*"
+    };
+  }
+  rpc GetTimeIntervals (GetTimeIntervalsRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/GetTimeIntervals"
+      body: "*"
+    };
+  }
+  rpc DeleteTimeInterval (DeleteTimeIntervalRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/DeleteTimeInterval"
+      body: "*"
+    };
+  }
+  rpc CalculateDayRangeFee (CalculateTimeIntervalFeeRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/CalculateDayRangeFee"
+      body: "*"
+    };
+  }
 }
 
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
+//STR Requests
+message UpsertTimeIntervalRequest {
+  int64 RequestId = 1;
+  TimeIntervalType TimeInterval = 2;
 }
 
-// The response message containing the greetings.
-message HelloReply {
-  string message = 1;
+message GetTimeIntervalRequest {
+  int64 RequestId = 1;
+  int32 Id = 2;
 }
+
+message GetTimeIntervalsRequest {
+  int64 RequestId = 1;
+}
+
+message DeleteTimeIntervalRequest {
+  int64 RequestId = 1;
+  int32 Id = 2;
+}
+
+message CalculateTimeIntervalFeeRequest {
+  int64 RequestId = 1;
+  int64 Start = 2; //duration in seconds
+  int64 End = 3;  //duration in seconds
+}
+//END Requests
+
+//STR Responses
+message UpsertTimeIntervalResponse {
+  GenericMessages.OperationResult Result = 1;
+  TimeIntervalType TimeInterval = 2;
+}
+
+message GetTimeIntervalResponse {
+  GenericMessages.OperationResult Result = 1;
+  TimeIntervalType TimeInterval = 2;
+}
+
+message GetTimeIntervalsResponse {
+  GenericMessages.OperationResult Result = 1;
+  repeated TimeIntervalType TimeInterval = 2;
+}
+
+message DeleteTimeIntervalResponse {
+  GenericMessages.OperationResult Result = 1;
+}
+
+message CalculateTimeIntervalFeeResponse {
+  GenericMessages.OperationResult Result = 1;
+  double Fee = 2;
+}
+
+message TimeIntervalType {
+   int32 Id = 1;
+   double From = 2; //duration in seconds
+   double To = 3;  //duration in seconds
+   repeated TimeIntervalRuleType Rules = 4;
+}
+
+message TimeIntervalRuleType {
+    int32 Priority = 1;
+    double Amount = 2;
+    int32 FrequencyIntervalPerAmount = 3;
+    int32 TotalCoveredMinutes = 4;
+}
+//END Responses

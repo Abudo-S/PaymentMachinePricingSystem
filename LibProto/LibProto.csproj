@@ -4,9 +4,22 @@
     <TargetFramework>net8.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+	<IncludeHttpRuleProtos>true</IncludeHttpRuleProtos>
   </PropertyGroup>
 
   <ItemGroup>
+    <PackageReference Include="Google.Protobuf" Version="3.26.1" />
+    <PackageReference Include="Grpc.AspNetCore" Version="2.62.0" />
+    <PackageReference Include="Grpc.AspNetCore.Web" Version="2.62.0" />
+    <PackageReference Include="Grpc.Core.Api" Version="2.62.0" />
+    <PackageReference Include="Grpc.Tools" Version="2.62.0">
+      <PrivateAssets>all</PrivateAssets>
+      <IncludeAssets>runtime; build; native; contentfiles; analyzers; buildtransitive</IncludeAssets>
+    </PackageReference>
+    <PackageReference Include="Microsoft.AspNetCore.Grpc.JsonTranscoding" Version="8.0.4" />
+  </ItemGroup>
+
+  <!--<ItemGroup>
     <None Update="DayRate.proto">
       <GrpcServices>Server</GrpcServices>
     </None>
@@ -19,9 +32,21 @@
     <None Update="TimeInterval.proto">
       <GrpcServices>Server</GrpcServices>
     </None>
+    <None Update="Autentication.proto">
+      <GrpcServices>Server</GrpcServices>
+    </None>
     <None Update="WeekPayModel.proto">
       <GrpcServices>Server</GrpcServices>
     </None>
-  </ItemGroup>
+  </ItemGroup>-->
+
+    <ItemGroup>
+	    <Protobuf Include="DayRate.proto" GrpcServices="Both" ProtoCompile="true" />
+	    <Protobuf Include="RequestHandlerMiddleware.proto" GrpcServices="Both" ProtoCompile="true" />
+	    <Protobuf Include="GenericMessages.proto" GrpcServices="Both" ProtoCompile="true" />
+	    <Protobuf Include="TimeInterval.proto" GrpcServices="Both" ProtoCompile="true" />
+	    <Protobuf Include="Autentication.proto" GrpcServices="Both" ProtoCompile="true" />
+	    <Protobuf Include="WeekPayModel.proto" GrpcServices="Both" ProtoCompile="true" />
+    </ItemGroup>
 
 </Project>

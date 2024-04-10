@@ -1,5 +1,6 @@
 syntax = "proto3";
 
+import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 import "GenericMessages.proto";
@@ -35,7 +36,7 @@ service DayRate {
       body: "*"
     };
   }
-  rpc CalculateDayRangeFee (CalculateDayRangeFeeRequest) returns (GenericMessages.AsyncResult)
+  rpc CalculateDayRangeFee (CalculateDayFeeRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
       post: "/HttpAPI/MicroservicesProtos/DayRate/CalculateDayRangeFee"
@@ -44,40 +45,47 @@ service DayRate {
   }
 }
 
+//STR Requests
 message UpsertDayRateRequest {
-   int32 RequestId = 1;
-   DayRate DayRate = 2;
+  int64 RequestId = 1;
+  DayRateType DayRate = 2;
 }
 
 message GetDayRateRequest {
-  int Id = 1;
+  int64 RequestId = 1;
+  int32 Id = 2;
 }
 
 message GetDayRatesRequest {
+  int64 RequestId = 1;
 }
 
 message DeleteDayRateRequest {
-  int Id = 1;
+  int64 RequestId = 1;
+  int32 Id = 2;
 }
 
-message CalculateDayRangeFeeRequest {
-  duration Start = 1;
-  duration End = 2;
+message CalculateDayFeeRequest {
+  int64 RequestId = 1;
+  int64 Start = 2; //duration in seconds
+  int64 End = 3; //duration in seconds
 }
+//End Requests
 
+//STR Responses
 message UpsertDayRateResponse {
   GenericMessages.OperationResult Result = 1;
-  DayRate DayRate = 2;
+  DayRateType DayRate = 2;
 }
 
 message GetDayRateResponse {
   GenericMessages.OperationResult Result = 1;
-  DayRate DayRate = 2;
+  DayRateType DayRate = 2;
 }
 
 message GetDayRatesResponse {
   GenericMessages.OperationResult Result = 1;
-  repeated DayRate DayRate = 2;
+  repeated DayRateType DayRate = 2;
 }
 
 message DeleteDayRateResponse {
@@ -89,8 +97,9 @@ message CalculateDayRangeFeeResponse {
   double Fee = 2;
 }
 
-message DayRate {
+message DayRateType {
    int32 FreeMinutes = 1;
    double MaxAmount = 2;
-   int CorrespondentDay = 3;
+   int32 CorrespondentDay = 3;
 }
+//END Responses

@@ -1,15 +1,18 @@
 using DayRateService;
+using Google.Protobuf.WellKnownTypes;
 using Grpc.Core;
+using Google.Protobuf;
 using MicroservicesProtos;
 
 namespace DayRateService.Services
 {
-    public class DayRateService : DayRate.GreeterBase
+    public class DayRateService : DayRate.DayRateBase
     {
-        private readonly ILogger<DayRateService> _logger;
-        public DayRateService(ILogger<DayRateService> logger)
+        private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+
+        public DayRateService()
         {
-            _logger = logger;
+            
         }
 
         //public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)

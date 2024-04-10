@@ -7,7 +7,6 @@ message AsyncResult {
 }
 
 message OperationResult {
-	int RequestIdentifier = 1;
+	int32 RequestIdentifier = 1;
 	bool Elaborated = 2;
 }
-

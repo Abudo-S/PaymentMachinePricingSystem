@@ -1,20 +1,112 @@
 syntax = "proto3";
 
+import "google/api/annotations.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/duration.proto";
 import "GenericMessages.proto";
+
 package MicroservicesProtos;
 
-// The greeting service definition.
 service WeekPayModel {
-  // Sends a greeting
-  rpc SayHello (HelloRequest) returns (HelloReply);
+  rpc UpsertWeekPayModel (UpsertWeekPayModelRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/UpsertWeekPayModel"
+      body: "*"
+    };
+  }
+  rpc GetWeekPayModel (GetWeekPayModelRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/GetWeekPayModel"
+      body: "*"
+    };
+  }
+  rpc GetWeekPayModels (GetWeekPayModelsRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/GetWeekPayModels"
+      body: "*"
+    };
+  }
+  rpc DeleteWeekPayModel (DeleteWeekPayModelRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/DeleteWeekPayModel"
+      body: "*"
+    };
+  }
+  rpc CalculateDayRangeFee (CalculateWeekPayModelFeeRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/CalculateDayRangeFee"
+      body: "*"
+    };
+  }
 }
 
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
+//STR Requests
+message UpsertWeekPayModelRequest {
+  int64 RequestId = 1;
+  WeekPayModelType WeekPayModel = 2;
 }
 
-// The response message containing the greetings.
-message HelloReply {
-  string message = 1;
+message GetWeekPayModelRequest {
+  int64 RequestId = 1;
+  int32 Id = 2;
 }
+
+message GetWeekPayModelsRequest {
+  int64 RequestId = 1;
+}
+
+message DeleteWeekPayModelRequest {
+  int64 RequestId = 1;
+  int32 Id = 2;
+}
+
+message CalculateWeekPayModelFeeRequest {
+  int64 RequestId = 1;
+  int64 Start = 2; //duration in seconds
+  int64 End = 3;  //duration in seconds
+}
+//END Requests
+
+//STR Responses
+message UpsertWeekPayModelResponse {
+  GenericMessages.OperationResult Result = 1;
+  WeekPayModelType WeekPayModel = 2;
+}
+
+message GetWeekPayModelResponse {
+  GenericMessages.OperationResult Result = 1;
+  WeekPayModelType WeekPayModel = 2;
+}
+
+message GetWeekPayModelsResponse {
+  GenericMessages.OperationResult Result = 1;
+  repeated WeekPayModelType WeekPayModel = 2;
+}
+
+message DeleteWeekPayModelResponse {
+  GenericMessages.OperationResult Result = 1;
+}
+
+message CalculateWeekPayModelFeeResponse {
+  GenericMessages.OperationResult Result = 1;
+  double Fee = 2;
+}
+
+message WeekPayModelType {
+   int32 Id = 1;
+   int32 MondayRateId = 2;
+   int32 TuesdayRateId = 3;
+   int32 wednesdayRateId = 4;
+   int32 ThursdayRateId = 5;
+   int32 FridayRateId = 6;
+   int32 SaturdayRateId = 7;
+   int32 SundayRateId = 8;
+   double WeekDayPercentBonus = 9;
+   int32 WeekDayStandardRateId = 10;
+}
+//END Responses

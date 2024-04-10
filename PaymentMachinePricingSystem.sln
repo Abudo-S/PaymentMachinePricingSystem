@@ -13,7 +13,7 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "RequestHandlerMiddleware", 
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibDTO", "LibDTO\LibDTO.csproj", "{72C6A8E9-E2DD-406F-BEC7-7542CE7E9959}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "LibProto", "LibProto\LibProto.csproj", "{67B2DC2B-6FE5-44C9-B366-A438A7EE3779}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "LibProto", "LibProto\LibProto.csproj", "{67B2DC2B-6FE5-44C9-B366-A438A7EE3779}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

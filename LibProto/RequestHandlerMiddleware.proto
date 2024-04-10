@@ -4,15 +4,11 @@ import "GenericMessages.proto";
 package MiddlewareProtos;
 
 service RequestHandlerMiddleware {
-  rpc SayHello (HelloRequest) returns (HelloReply);
-}
-
-// The request message containing the user's name.
-message HelloRequest {
-  string name = 1;
-}
-
-// The response message containing the greetings.
-message HelloReply {
-  string message = 1;
+	rpc Test (GenericMessages.AsyncResult) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandlerMiddleware/Test"
+      body: "*"
+    };
+  }
 }

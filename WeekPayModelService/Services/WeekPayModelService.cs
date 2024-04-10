@@ -1,22 +1,22 @@
 using Grpc.Core;
-using WeekPayModelService;
+using MicroservicesProtos;
 
 namespace WeekPayModelService.Services
 {
-    public class WeekPayModelService : Greeter.GreeterBase
+    public class WeekPayModelService : WeekPayModel.WeekPayModelBase
     {
-        private readonly ILogger<WeekPayModelService> _logger;
-        public WeekPayModelService(ILogger<WeekPayModelService> logger)
+        private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+        public WeekPayModelService()
         {
-            _logger = logger;
+            
         }
 
-        public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
-        {
-            return Task.FromResult(new HelloReply
-            {
-                Message = "Hello " + request.Name
-            });
-        }
+        //public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+        //{
+        //    return Task.FromResult(new HelloReply
+        //    {
+        //        Message = "Hello " + request.Name
+        //    });
+        //}
     }
 }

@@ -1,22 +1,21 @@
 using Grpc.Core;
-using RequestHandlerMiddleware;
+using MiddlewareProtos;
 
 namespace RequestHandlerMiddleware.Services
 {
-    public class RequestHandlerMiddlewareService : Greeter.GreeterBase
+    public class RequestHandlerMiddlewareService : RequestHandlerMiddleware.RequestHandlerMiddlewareBase
     {
-        private readonly ILogger<RequestHandlerMiddlewareService> _logger;
-        public RequestHandlerMiddlewareService(ILogger<RequestHandlerMiddlewareService> logger)
+        private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+        public RequestHandlerMiddlewareService()
         {
-            _logger = logger;
         }
 
-        public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
-        {
-            return Task.FromResult(new HelloReply
-            {
-                Message = "Hello " + request.Name
-            });
-        }
+        //public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
+        //{
+        //    return Task.FromResult(new HelloReply
+        //    {
+        //        Message = "Hello " + request.Name
+        //    });
+        //}
     }
 }
