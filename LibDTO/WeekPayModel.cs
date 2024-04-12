@@ -14,7 +14,7 @@ namespace LibDTO
         public int Id { get; set; }
         public int? MondayRateId { get; set; }
         public int? TuesdayRateId { get; set; }
-        public int? wednesdayRateId { get; set; }
+        public int? WednesdayRateId { get; set; }
         public int? ThursdayRateId { get; set; }
         public int? FridayRateId { get; set; }
         public int? SaturdayRateId { get; set; }
@@ -22,7 +22,7 @@ namespace LibDTO
 
         /// <summary>
         /// to be applied on the sum of all day fees
-        /// ex. 30.5 * (2 days' fee)
+        /// ex. 30.5% * (2 days' fee)
         /// </summary>
         public double WeekDayPercentBonus { get; set; }
 

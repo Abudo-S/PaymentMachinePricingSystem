@@ -1,14 +1,19 @@
-using DayRateService.Services;
+using DayRateServices = DayRateService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
-builder.Services.AddGrpc();
+builder.Services.AddGrpc();//.AddServiceOptions(options => options.);
 builder.Services.AddGrpc().AddJsonTranscoding();
 
+builder.Services.AddReverseProxy()
+    .LoadFromConfig(builder.Configuration.GetSection("DayRateLoadBalancer"));
+
+//builder.Services.AddHealthChecks();
+
 var app = builder.Build();
-var env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
-if (env.Equals("Development"))
+
+if (app.Environment.IsDevelopment())
 {
     app.UseDeveloperExceptionPage();
 }
@@ -28,7 +33,7 @@ app.UseGrpcWeb(new GrpcWebOptions() { DefaultEnabled = true });
 app.UseCors();
 app.UseEndpoints(endpoints =>
 {
-    endpoints.MapGrpcService<DayRateService>().EnableGrpcWeb();
+    endpoints.MapGrpcService<DayRateServices.DayRateService>().EnableGrpcWeb();
 
     endpoints.MapGet("/availableGrpcRoutes", async context =>
     {

@@ -1,6 +1,7 @@
 using Grpc.Core;
 using TimeIntervalService;
 using MicroservicesProtos;
+using GenericMessages;
 
 namespace TimeIntervalService.Services
 {
@@ -11,13 +12,114 @@ namespace TimeIntervalService.Services
         {
             
         }
+        public override Task<AsyncResult> UpsertTimeInterval(UpsertTimeIntervalRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked UpsertTimeInterval with RequestId: {request.RequestId}, TimeIntervalId: {request.TimeInterval.Id}");
 
-        //public override Task<HelloReply> SayHello(HelloRequest request, ServerCallContext context)
-        //{
-        //    return Task.FromResult(new HelloReply
-        //    {
-        //        Message = "Hello " + request.Name
-        //    });
-        //}
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In UpsertTimeInterval()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
+
+        public override Task<AsyncResult> GetTimeInterval(GetTimeIntervalRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked GetTimeInterval with RequestId: {request.RequestId}");
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In GetTimeInterval()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
+
+        public override Task<AsyncResult> GetTimeIntervals(GetTimeIntervalsRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked GetTimeIntervals with RequestId: {request.RequestId}");
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In GetTimeIntervals()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
+
+        public override Task<AsyncResult> DeleteTimeInterval(DeleteTimeIntervalRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked DeleteTimeInterval with RequestId: {request.RequestId}, TimeIntervalId: {request.Id}");
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In DeleteTimeInterval()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
+
+        public override Task<AsyncResult> CalculateTimeIntervalFee(CalculateTimeIntervalFeeRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked CalculateTimeIntervalFee with RequestId: {request.RequestId}");
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In CalculateTimeIntervalFee()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
     }
 }

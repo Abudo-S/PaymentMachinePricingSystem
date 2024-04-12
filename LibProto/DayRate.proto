@@ -36,10 +36,17 @@ service DayRate {
       body: "*"
     };
   }
-  rpc CalculateDayRangeFee (CalculateDayFeeRequest) returns (GenericMessages.AsyncResult)
+  rpc CalculateDayFee (CalculateDayFeeRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
-      post: "/HttpAPI/MicroservicesProtos/DayRate/CalculateDayRangeFee"
+      post: "/HttpAPI/MicroservicesProtos/DayRate/CalculateDayFee"
+      body: "*"
+    };
+  }
+  rpc IsAlive (GenericMessages.IsAliveResult) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/IsAlive"
       body: "*"
     };
   }
@@ -74,32 +81,38 @@ message CalculateDayFeeRequest {
 
 //STR Responses
 message UpsertDayRateResponse {
-  GenericMessages.OperationResult Result = 1;
-  DayRateType DayRate = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  DayRateType DayRate = 3;
 }
 
 message GetDayRateResponse {
-  GenericMessages.OperationResult Result = 1;
-  DayRateType DayRate = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  DayRateType DayRate = 3;
 }
 
 message GetDayRatesResponse {
-  GenericMessages.OperationResult Result = 1;
-  repeated DayRateType DayRate = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  repeated DayRateType DayRate = 3;
 }
 
 message DeleteDayRateResponse {
-  GenericMessages.OperationResult Result = 1;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
 }
 
 message CalculateDayRangeFeeResponse {
-  GenericMessages.OperationResult Result = 1;
-  double Fee = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  double Fee = 3;
 }
 
 message DayRateType {
-   int32 FreeMinutes = 1;
-   double MaxAmount = 2;
-   int32 CorrespondentDay = 3;
+   int32 Id = 1;
+   int32 FreeMinutes = 2;
+   double MaxAmount = 3;
+   int32 CorrespondentDay = 4;
 }
 //END Responses

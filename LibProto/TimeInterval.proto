@@ -36,10 +36,17 @@ service TimeInterval {
       body: "*"
     };
   }
-  rpc CalculateDayRangeFee (CalculateTimeIntervalFeeRequest) returns (GenericMessages.AsyncResult)
+  rpc CalculateTimeIntervalFee (CalculateTimeIntervalFeeRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
-      post: "/HttpAPI/MicroservicesProtos/TimeInterval/CalculateDayRangeFee"
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/CalculateTimeIntervalFee"
+      body: "*"
+    };
+  }
+  rpc IsAlive (GenericMessages.IsAliveResult) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/IsAlive"
       body: "*"
     };
   }
@@ -74,27 +81,32 @@ message CalculateTimeIntervalFeeRequest {
 
 //STR Responses
 message UpsertTimeIntervalResponse {
-  GenericMessages.OperationResult Result = 1;
-  TimeIntervalType TimeInterval = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  TimeIntervalType TimeInterval = 3;
 }
 
 message GetTimeIntervalResponse {
-  GenericMessages.OperationResult Result = 1;
-  TimeIntervalType TimeInterval = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  TimeIntervalType TimeInterval = 3;
 }
 
 message GetTimeIntervalsResponse {
-  GenericMessages.OperationResult Result = 1;
-  repeated TimeIntervalType TimeInterval = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  repeated TimeIntervalType TimeInterval = 3;
 }
 
 message DeleteTimeIntervalResponse {
-  GenericMessages.OperationResult Result = 1;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
 }
 
 message CalculateTimeIntervalFeeResponse {
-  GenericMessages.OperationResult Result = 1;
-  double Fee = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  double Fee = 3;
 }
 
 message TimeIntervalType {

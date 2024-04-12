@@ -36,10 +36,17 @@ service WeekPayModel {
       body: "*"
     };
   }
-  rpc CalculateDayRangeFee (CalculateWeekPayModelFeeRequest) returns (GenericMessages.AsyncResult)
+  rpc CalculateWeekPayModelFee (CalculateWeekPayModelFeeRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
-      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/CalculateDayRangeFee"
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/CalculateWeekPayModelFee"
+      body: "*"
+    };
+  }
+  rpc IsAlive (GenericMessages.IsAliveResult) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/IsAlive"
       body: "*"
     };
   }
@@ -74,34 +81,39 @@ message CalculateWeekPayModelFeeRequest {
 
 //STR Responses
 message UpsertWeekPayModelResponse {
-  GenericMessages.OperationResult Result = 1;
-  WeekPayModelType WeekPayModel = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  WeekPayModelType WeekPayModel = 3;
 }
 
 message GetWeekPayModelResponse {
-  GenericMessages.OperationResult Result = 1;
-  WeekPayModelType WeekPayModel = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  WeekPayModelType WeekPayModel = 3;
 }
 
 message GetWeekPayModelsResponse {
-  GenericMessages.OperationResult Result = 1;
-  repeated WeekPayModelType WeekPayModel = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  repeated WeekPayModelType WeekPayModel = 3;
 }
 
 message DeleteWeekPayModelResponse {
-  GenericMessages.OperationResult Result = 1;
+ int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
 }
 
 message CalculateWeekPayModelFeeResponse {
-  GenericMessages.OperationResult Result = 1;
-  double Fee = 2;
+  int64 RequestId = 1;
+  GenericMessages.OperationResult Result = 2;
+  double Fee = 3;
 }
 
 message WeekPayModelType {
    int32 Id = 1;
    int32 MondayRateId = 2;
    int32 TuesdayRateId = 3;
-   int32 wednesdayRateId = 4;
+   int32 WednesdayRateId = 4;
    int32 ThursdayRateId = 5;
    int32 FridayRateId = 6;
    int32 SaturdayRateId = 7;

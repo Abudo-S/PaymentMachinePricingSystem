@@ -10,3 +10,10 @@ message OperationResult {
 	int32 RequestIdentifier = 1;
 	bool Elaborated = 2;
 }
+
+message IsAliveRequest {
+}
+
+message IsAliveResult {
+	bool IsAlive = 1;
+}

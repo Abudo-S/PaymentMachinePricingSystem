@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace LibDTO
 {
-    public class DayPriceRate
+    public class DayRate
     {
         public int Id { get; set; }
         public int FreeMinutes { get; set; }
