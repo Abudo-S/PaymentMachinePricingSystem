@@ -1,3 +1,5 @@
+using Google.Api;
+using Microsoft.AspNetCore.ResponseCompression;
 using DayRateServices = DayRateService.Services;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -10,6 +12,23 @@ builder.Services.AddReverseProxy()
     .LoadFromConfig(builder.Configuration.GetSection("DayRateLoadBalancer"));
 
 //builder.Services.AddHealthChecks();
+
+builder.Services.AddCors(o => o.AddPolicy("AllowAll", builder =>
+{
+    builder.AllowAnyOrigin()
+           .AllowAnyMethod()
+           .AllowAnyHeader()
+           .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
+})); 
+
+//Response time optimization
+builder.Services.AddResponseCompression(opts =>
+{
+    opts.MimeTypes = ResponseCompressionDefaults.MimeTypes.Concat(
+        new[] { "application/octet-stream" });
+});
+
+//builder.WebHost.UseKestrel();
 
 var app = builder.Build();
 
@@ -33,7 +52,7 @@ app.UseGrpcWeb(new GrpcWebOptions() { DefaultEnabled = true });
 app.UseCors();
 app.UseEndpoints(endpoints =>
 {
-    endpoints.MapGrpcService<DayRateServices.DayRateService>().EnableGrpcWeb();
+    endpoints.MapGrpcService<DayRateServices.DayRateService>().EnableGrpcWeb().RequireCors("AllowAll");
 
     endpoints.MapGet("/availableGrpcRoutes", async context =>
     {

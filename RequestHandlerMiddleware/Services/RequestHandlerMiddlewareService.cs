@@ -3,7 +3,7 @@ using MiddlewareProtos;
 
 namespace RequestHandlerMiddleware.Services
 {
-    public class RequestHandlerMiddlewareService : RequestHandlerMiddleware.RequestHandlerMiddlewareBase
+    public class RequestHandlerMiddlewareService : RequestHandler.RequestHandlerBase
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
         public RequestHandlerMiddlewareService()

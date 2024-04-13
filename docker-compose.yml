@@ -2,45 +2,55 @@ version: '3.4'
 
 services:
   DayRateService:
-    image: ${DOCKER_REGISTRY-}DayRateService
+    image: ${DOCKER_REGISTRY-}dayrateservice
     container_name: DayRateServiceContainer
     build:
       context: .
       dockerfile: DayRateService/Dockerfile
     environment: 
       - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
     ports:
-      - "5000:80"
-      - "5001:443"
+      - "4000:80"
+      - "4001:443"
     volumes:
-      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
-      - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+      # - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+      # - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+      - ./server:/app
+      - /app/obj/
+      - /app/bin/
+      - /app/out/
 
   DayRateService1:
-    image: ${DOCKER_REGISTRY-}DayRateService
+    image: ${DOCKER_REGISTRY-}dayrateservice
     container_name: DayRateServiceContainer1
     build:
       context: .
       dockerfile: DayRateService/Dockerfile
     environment: 
       - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_URLS=https://+:443;http://+:80
     ports:
       - "6000:80"
       - "6001:443"
     volumes:
-      - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
-      - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+      # - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+      # - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+      - ./server:/app
+      - /app/obj/
+      - /app/bin/
+      - /app/out/
 
-  WeekPayModelService:
-    image: ${DOCKER_REGISTRY-}WeekPayModelService
-    container_name: WeekPayModelServiceContainer
-    build:
-      context: .
-      dockerfile: WeekPayModelService/Dockerfile
+  # WeekPayModelService:
+  #   image: ${DOCKER_REGISTRY-}WeekPayModelService
+  #   container_name: WeekPayModelServiceContainer
+  #   build:
+  #     context: .
+  #     dockerfile: WeekPayModelService/Dockerfile
 
-  TimeIntervalService:
-    image: ${DOCKER_REGISTRY-}TimeIntervalService
-    container_name: TimeIntervalServiceContainer
-    build:
-      context: .
-      dockerfile: TimeIntervalService/Dockerfile
+  # TimeIntervalService:
+  #   image: ${DOCKER_REGISTRY-}TimeIntervalService
+  #   container_name: TimeIntervalServiceContainer
+  #   build:
+  #     context: .
+  #     dockerfile: TimeIntervalService/Dockerfile

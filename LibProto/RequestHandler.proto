@@ -7,7 +7,7 @@ import "GenericMessages.proto";
 
 package MiddlewareProtos;
 
-service RequestHandlerMiddleware {
+service RequestHandler {
 	rpc Test (GenericMessages.AsyncResult) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {

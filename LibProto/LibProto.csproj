@@ -42,7 +42,7 @@
 
     <ItemGroup>
 	    <Protobuf Include="DayRate.proto" GrpcServices="Both" ProtoCompile="true" />
-	    <Protobuf Include="RequestHandlerMiddleware.proto" GrpcServices="Both" ProtoCompile="true" />
+	    <Protobuf Include="RequestHandler.proto" GrpcServices="Both" ProtoCompile="true" />
 	    <Protobuf Include="GenericMessages.proto" GrpcServices="Both" ProtoCompile="true" />
 	    <Protobuf Include="TimeInterval.proto" GrpcServices="Both" ProtoCompile="true" />
 	    <Protobuf Include="Autentication.proto" GrpcServices="Both" ProtoCompile="true" />

@@ -3,25 +3,84 @@
 #Depending on the operating system of the host machines(s) that will build or run the containers, the image specified in the FROM statement may need to be changed.
 #For more information, please see https://aka.ms/containercompat
 
-FROM mcr.microsoft.com/dotnet/aspnet:8.0-nanoserver-1809 AS base
-WORKDIR /app
-EXPOSE 8080
-EXPOSE 8081
+#FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build-env
+#WORKDIR /app
+#
+## Copy csproj and restore as distinct layers
+##COPY *.csproj ./
+#COPY . .
+#RUN dotnet restore
+#
+## Copy everything else and build
+##COPY . ./
+#RUN dotnet publish -o /app
+#
+## Build runtime image
+#FROM mcr.microsoft.com/dotnet/aspnet:8.0
+#WORKDIR /app
+#COPY --from=build-env /app .
+#
+#EXPOSE 5000
+#EXPOSE 5001
+#ENV ASPNETCORE_URLS=http://+:5000
+#ENV ASPNETCORE_URLS=https://+:5001
+#
+## Command used to start the project
+#ENTRYPOINT ["dotnet", "DayRateService.dll"]
 
-FROM mcr.microsoft.com/dotnet/sdk:8.0-nanoserver-1809 AS build
-ARG BUILD_CONFIGURATION=Release
+#To overcome dependencyLib directory error, just run dockerfile from partent directory through:
+#docker build . -t imageTag -f .\projFolder\Dockerfile
+#Sometimes you'll need to deleted cached builds from docker desktop
+
+FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+WORKDIR /app
+EXPOSE 5000
+EXPOSE 5001
+
+FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
-COPY ["DayRateService/DayRateService.csproj", "DayRateService/"]
+COPY ../DayRateService/ DayRateService/
+COPY ../LibDTO/ LibDTO/
+COPY ../LibProto/ LibProto/
+
+RUN dotnet restore "./LibDTO/LibDTO.csproj"
+RUN dotnet restore "./LibProto/LibProto.csproj"
 RUN dotnet restore "./DayRateService/DayRateService.csproj"
-COPY . .
-WORKDIR "/src/DayRateService"
-RUN dotnet build "./DayRateService.csproj" -c %BUILD_CONFIGURATION% -o /app/build
+
+RUN dotnet build "./DayRateService/DayRateService.csproj" -c Debug -o /app/build
 
 FROM build AS publish
-ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish "./DayRateService.csproj" -c %BUILD_CONFIGURATION% -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./DayRateService/DayRateService.csproj" -c Release -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app
 COPY --from=publish /app/publish .
 ENTRYPOINT ["dotnet", "DayRateService.dll"]
+
+## Use a base image with the .NET 8 runtime
+#FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
+#
+## Set working directory within the container
+#WORKDIR /app
+#
+## Copy project files from current directory
+#COPY . .
+#
+#FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
+## Restore dependencies using NuGet
+#RUN dotnet restore
+#
+## Publish the application (production-ready)
+#RUN dotnet publish -c Release -o out/publish
+#
+## Final image stage (copies published artifacts)
+#FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS final
+#
+## Copy published artifacts from build stage
+#COPY --from=build /app/out/publish .
+#
+## Expose port 80 for web traffic
+#EXPOSE 80
+#
+## Set the entry point to run the application
+#ENTRYPOINT ["dotnet", "DayRateService.dll"]
