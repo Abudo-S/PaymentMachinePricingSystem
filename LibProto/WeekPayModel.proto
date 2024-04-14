@@ -54,26 +54,26 @@ service WeekPayModel {
 
 //STR Requests
 message UpsertWeekPayModelRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
   WeekPayModelType WeekPayModel = 2;
 }
 
 message GetWeekPayModelRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
   int32 Id = 2;
 }
 
 message GetWeekPayModelsRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
 }
 
 message DeleteWeekPayModelRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
   int32 Id = 2;
 }
 
 message CalculateWeekPayModelFeeRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
   int64 Start = 2; //duration in seconds
   int64 End = 3;  //duration in seconds
 }
@@ -81,30 +81,30 @@ message CalculateWeekPayModelFeeRequest {
 
 //STR Responses
 message UpsertWeekPayModelResponse {
-  int64 RequestId = 1;
+  string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
   WeekPayModelType WeekPayModel = 3;
 }
 
 message GetWeekPayModelResponse {
-  int64 RequestId = 1;
+  string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
   WeekPayModelType WeekPayModel = 3;
 }
 
 message GetWeekPayModelsResponse {
-  int64 RequestId = 1;
+  string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
   repeated WeekPayModelType WeekPayModel = 3;
 }
 
 message DeleteWeekPayModelResponse {
- int64 RequestId = 1;
+ string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
 }
 
 message CalculateWeekPayModelFeeResponse {
-  int64 RequestId = 1;
+  string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
   double Fee = 3;
 }

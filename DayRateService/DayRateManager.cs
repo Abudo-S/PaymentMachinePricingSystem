@@ -14,7 +14,10 @@ namespace DayRateService
 
         private CancellationTokenSource cts = new CancellationTokenSource();
 
-        private DayRateManager() { }
+        private DayRateManager() {
+            //when the manager of microservice is up it'll request a copy of ids of all pending requests and it will consider
+            //the default timeout to start handling these requests
+        }
 
         internal bool AppendRequest(DayRate request)
         {

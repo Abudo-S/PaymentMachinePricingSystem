@@ -2,6 +2,11 @@ using Google.Api;
 using Microsoft.AspNetCore.ResponseCompression;
 using DayRateServices = DayRateService.Services;
 
+//IConfiguration configuration = new ConfigurationBuilder()
+//        .SetBasePath(Directory.GetCurrentDirectory())
+//        .AddJsonFile("appSettings.json", optional: false, reloadOnChange: false)
+//        .Build();
+
 var builder = WebApplication.CreateBuilder(args);
 
 // Add services to the container.
@@ -29,6 +34,15 @@ builder.Services.AddResponseCompression(opts =>
 });
 
 //builder.WebHost.UseKestrel();
+
+//Redis
+builder.Services.AddStackExchangeRedisCache(options =>
+{
+    options.Configuration = builder.Configuration.GetConnectionString("Redis");
+    options.InstanceName = "DayRateService_Redis";
+});
+builder.Services.AddScoped<DayRateServices.DayRateService>();
+//builder.Services.AddSingleton<DayRateServices.DayRateService>();
 
 var app = builder.Build();
 

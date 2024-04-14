@@ -34,15 +34,18 @@
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-EXPOSE 5000
-EXPOSE 5001
+EXPOSE 8080
+EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ../DayRateService/ DayRateService/
 COPY ../LibDTO/ LibDTO/
 COPY ../LibProto/ LibProto/
+COPY ../LibHelpers/ LibHelpers/
 
+
+RUN dotnet restore "./LibHelpers/LibHelpers.csproj"
 RUN dotnet restore "./LibDTO/LibDTO.csproj"
 RUN dotnet restore "./LibProto/LibProto.csproj"
 RUN dotnet restore "./DayRateService/DayRateService.csproj"
@@ -50,7 +53,7 @@ RUN dotnet restore "./DayRateService/DayRateService.csproj"
 RUN dotnet build "./DayRateService/DayRateService.csproj" -c Debug -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "./DayRateService/DayRateService.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./DayRateService/DayRateService.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app

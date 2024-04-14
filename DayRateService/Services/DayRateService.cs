@@ -4,21 +4,26 @@ using Grpc.Core;
 using Google.Protobuf;
 using MicroservicesProtos;
 using GenericMessages;
+using Microsoft.AspNetCore.Components;
+using Microsoft.Extensions.Caching.Distributed;
+using LibHelpers;
 
 namespace DayRateService.Services
 {
     public class DayRateService : DayRate.DayRateBase
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+        private IDistributedCache cache;
 
-        public DayRateService()
+        public DayRateService(IDistributedCache cache)
         {
-            
+            this.cache = cache;
         }
 
-        private bool WriteAndAssignRequest()
+        private bool WriteAndAssignRequest<T>(T request)
         {
             //write request in redis cache
+            
             //assign request id to an available microservice instance
 
             return false;
@@ -30,11 +35,9 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked UpsertDayRate with RequestId: {request.RequestId}, DayRateId: {request.DayRate.Id}");
 
-                //WriteAndAssignRequest()
-
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = true
+                    Awk = cache.SetRecordAsync<UpsertDayRateRequest>(request.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -58,7 +61,7 @@ namespace DayRateService.Services
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = true
+                    Awk = cache.SetRecordAsync<GetDayRateRequest>(request.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -82,7 +85,7 @@ namespace DayRateService.Services
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = true
+                    Awk = cache.SetRecordAsync<GetDayRatesRequest>(request.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -106,7 +109,7 @@ namespace DayRateService.Services
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = true
+                    Awk = cache.SetRecordAsync<DeleteDayRateRequest>(request.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -130,7 +133,7 @@ namespace DayRateService.Services
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = true
+                    Awk = cache.SetRecordAsync<CalculateDayFeeRequest>(request.RequestId, request).Result
                 });
             }
             catch (Exception ex)

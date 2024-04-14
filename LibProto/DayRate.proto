@@ -54,26 +54,26 @@ service DayRate {
 
 //STR Requests
 message UpsertDayRateRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
   DayRateType DayRate = 2;
 }
 
 message GetDayRateRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
   int32 Id = 2;
 }
 
 message GetDayRatesRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
 }
 
 message DeleteDayRateRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
   int32 Id = 2;
 }
 
 message CalculateDayFeeRequest {
-  int64 RequestId = 1;
+  string RequestId = 1;
   int64 Start = 2; //duration in seconds
   int64 End = 3; //duration in seconds
 }
@@ -81,30 +81,30 @@ message CalculateDayFeeRequest {
 
 //STR Responses
 message UpsertDayRateResponse {
-  int64 RequestId = 1;
+  string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
   DayRateType DayRate = 3;
 }
 
 message GetDayRateResponse {
-  int64 RequestId = 1;
+  string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
   DayRateType DayRate = 3;
 }
 
 message GetDayRatesResponse {
-  int64 RequestId = 1;
+  string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
   repeated DayRateType DayRate = 3;
 }
 
 message DeleteDayRateResponse {
-  int64 RequestId = 1;
+  string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
 }
 
 message CalculateDayRangeFeeResponse {
-  int64 RequestId = 1;
+  string RequestId = 1;
   GenericMessages.OperationResult Result = 2;
   double Fee = 3;
 }
