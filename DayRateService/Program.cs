@@ -3,6 +3,11 @@ using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.AspNetCore.Server.Kestrel.Https;
 using DayRateServices = DayRateService.Services;
+using Microsoft.Extensions.DependencyInjection;
+using Yarp.ReverseProxy.Configuration;
+using Microsoft.AspNetCore.Builder;
+using LibHelpers;
+using System.Collections;
 
 //IConfiguration configuration = new ConfigurationBuilder()
 //        .SetBasePath(Directory.GetCurrentDirectory())
@@ -53,6 +58,14 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddScoped<DayRateServices.DayRateService>();
 //builder.Services.AddSingleton<DayRateServices.DayRateService>();
 
+//List<string> clusterNodes = new List<string>();
+//builder.Configuration.GetSection("ClusterNodes").Bind(clusterNodes);
+//builder.Services.AddSingleton<IProxyConfigProvider>(
+//    new CustomLoadBalancerProxyProvider((string)(builder.Configuration.GetValue(typeof(string), "ClusterId") ?? "DayRateCluster"),
+//    clusterNodes,
+//    (string)(builder.Configuration.GetValue(typeof(string), "MatchingPath") ?? "{**catch-all}"))
+//    ).AddReverseProxy();
+
 builder.Services.Configure<KestrelServerOptions>(options => {
     options.ConfigureHttpsDefaults(options =>
         options.ClientCertificateMode = ClientCertificateMode.RequireCertificate);
@@ -73,18 +86,17 @@ app.UseRouting();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.MapReverseProxy();
 
 // must be added after UseRouting and before UseEndpoints 
-//we will set default to true, to enable defualt GRPC-WEB interface on each GRPC.addService
+//we will set default to true, to enable default GRPC-WEB interface on each GRPC.addService
 app.UseGrpcWeb(new GrpcWebOptions() { DefaultEnabled = true });
 
+app.MapGrpcService<DayRateServices.DayRateService>().EnableGrpcWeb().RequireCors("AllowAll");
 app.UseCors();
+
 app.UseEndpoints(endpoints =>
 {
-    endpoints.MapGrpcService<DayRateServices.DayRateService>().EnableGrpcWeb().RequireCors("AllowAll");
-
-    endpoints.MapReverseProxy();
-
     endpoints.MapGet("/availableGrpcRoutes", async context =>
     {
         var endpointDataSource = context
