@@ -1,5 +1,7 @@
 using Google.Api;
 using Microsoft.AspNetCore.ResponseCompression;
+using Microsoft.AspNetCore.Server.Kestrel.Core;
+using Microsoft.AspNetCore.Server.Kestrel.Https;
 using DayRateServices = DayRateService.Services;
 
 //IConfiguration configuration = new ConfigurationBuilder()
@@ -33,7 +35,14 @@ builder.Services.AddResponseCompression(opts =>
         new[] { "application/octet-stream" });
 });
 
-//builder.WebHost.UseKestrel();
+//builder.WebHost.UseKestrel(option =>
+//{
+//    option.ListenAnyIP(80, config =>
+//    {
+//        config.Protocols = HttpProtocols.Http1AndHttp2;
+//        //config.UseHttps();
+//    });
+//});
 
 //Redis
 builder.Services.AddStackExchangeRedisCache(options =>
@@ -44,6 +53,12 @@ builder.Services.AddStackExchangeRedisCache(options =>
 builder.Services.AddScoped<DayRateServices.DayRateService>();
 //builder.Services.AddSingleton<DayRateServices.DayRateService>();
 
+builder.Services.Configure<KestrelServerOptions>(options => {
+    options.ConfigureHttpsDefaults(options =>
+        options.ClientCertificateMode = ClientCertificateMode.RequireCertificate);
+});
+
+
 var app = builder.Build();
 
 if (app.Environment.IsDevelopment())
@@ -53,7 +68,7 @@ if (app.Environment.IsDevelopment())
 
 app.UseRouting();
 
-app.UseHttpsRedirection();
+//app.UseHttpsRedirection();
 
 app.UseStaticFiles();
 
@@ -67,6 +82,8 @@ app.UseCors();
 app.UseEndpoints(endpoints =>
 {
     endpoints.MapGrpcService<DayRateServices.DayRateService>().EnableGrpcWeb().RequireCors("AllowAll");
+
+    endpoints.MapReverseProxy();
 
     endpoints.MapGet("/availableGrpcRoutes", async context =>
     {

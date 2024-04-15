@@ -19,7 +19,7 @@ namespace DayRateService
             //the default timeout to start handling these requests
         }
 
-        internal bool AppendRequest(DayRate request)
+        public bool AppendRequest(DayRate request)
         {
             //CompletionQueue
             return false;

@@ -31,6 +31,13 @@
 #To overcome dependencyLib directory error, just run dockerfile from partent directory through:
 #docker build . -t imageTag -f .\projFolder\Dockerfile
 #Sometimes you'll need to deleted cached builds from docker desktop
+#To add relative redis image with container: docker run --name dayrateservice_redis -p 5002:6379 -d redis
+#To run existing  .net image with configuration: docker run --name dayrateservice --rm -it -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORTS=8001  -e ASPNETCORE_HTTP_PORTS=8000 -d dayrateservice
+#only http container: docker run --name dayrateservice --rm -it -p 8000:80 -e ASPNETCORE_URLS="http://+" -e ASPNETCORE_HTTP_PORTS=80 -d dayrateservice
+#create network bridge and add running containers to them: docker network create paymentMachinePricingSystem_network
+#docker network connect paymentMachinePricingSystem_network dayrateservice
+#docker network connect paymentMachinePricingSystem_network dayrateservice_redis
+#inspect service container ip: docker inspect --format='{{.NetworkSettings.IPAddress}}' dayrateservice_redis
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
