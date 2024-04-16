@@ -8,6 +8,7 @@ using Yarp.ReverseProxy.Configuration;
 using Microsoft.AspNetCore.Builder;
 using LibHelpers;
 using System.Collections;
+using Grpc.Net.Client.Web;
 
 //IConfiguration configuration = new ConfigurationBuilder()
 //        .SetBasePath(Directory.GetCurrentDirectory())
@@ -25,13 +26,13 @@ builder.Services.AddReverseProxy()
 
 //builder.Services.AddHealthChecks();
 
-builder.Services.AddCors(o => o.AddPolicy("AllowAll", builder =>
-{
-    builder.AllowAnyOrigin()
-           .AllowAnyMethod()
-           .AllowAnyHeader()
-           .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
-})); 
+//builder.Services.AddCors(o => o.AddPolicy("AllowAll", builder =>
+//{
+//    builder.AllowAnyOrigin()
+//           .AllowAnyMethod()
+//           .AllowAnyHeader()
+//           .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
+//})); 
 
 //Response time optimization
 builder.Services.AddResponseCompression(opts =>
@@ -55,8 +56,15 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "DayRateService_Redis";
 });
+//Dependency injection
 builder.Services.AddScoped<DayRateServices.DayRateService>();
-//builder.Services.AddSingleton<DayRateServices.DayRateService>();
+
+//builder.Services.AddGrpcClient<DayRateServices.DayRateService>(o => { o.Address = new Uri("http://localhost:5039"); })
+//.ConfigureChannel(o =>
+//{
+//    o.HttpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new
+//                  HttpClientHandler()));
+//});
 
 //List<string> clusterNodes = new List<string>();
 //builder.Configuration.GetSection("ClusterNodes").Bind(clusterNodes);
@@ -66,10 +74,11 @@ builder.Services.AddScoped<DayRateServices.DayRateService>();
 //    (string)(builder.Configuration.GetValue(typeof(string), "MatchingPath") ?? "{**catch-all}"))
 //    ).AddReverseProxy();
 
-builder.Services.Configure<KestrelServerOptions>(options => {
-    options.ConfigureHttpsDefaults(options =>
-        options.ClientCertificateMode = ClientCertificateMode.RequireCertificate);
-});
+//builder.Services.Configure<KestrelServerOptions>(options => {
+//    options.ConfigureHttpsDefaults(options =>
+//        options.ClientCertificateMode = ClientCertificateMode.NoCertificate);
+//    //options.ConfigureEndpointDefaults(lo => lo.Protocols = HttpProtocols.Http1AndHttp2);
+//});
 
 
 var app = builder.Build();
@@ -81,19 +90,21 @@ if (app.Environment.IsDevelopment())
 
 app.UseRouting();
 
-//app.UseHttpsRedirection();
-
 app.UseStaticFiles();
 
 app.UseRouting();
 app.MapReverseProxy();
 
-// must be added after UseRouting and before UseEndpoints 
-//we will set default to true, to enable default GRPC-WEB interface on each GRPC.addService
-app.UseGrpcWeb(new GrpcWebOptions() { DefaultEnabled = true });
 
-app.MapGrpcService<DayRateServices.DayRateService>().EnableGrpcWeb().RequireCors("AllowAll");
+// must be added after UseRouting and before UseEndpoints 
+//new GrpcWebOptions() { DefaultEnabled = true } -> applies default options that changes headers -cause compression error to YARP
+//app.UseGrpcWeb(new GrpcWebOptions() { DefaultEnabled = true });
+app.UseGrpcWeb();
+
 app.UseCors();
+
+//NOTE: native grpc service uri are reserved through MapGrpcService(), so YARP can't intercept them
+app.MapGrpcService<DayRateServices.DayRateService>().EnableGrpcWeb().RequireCors("AllowAll");
 
 app.UseEndpoints(endpoints =>
 {
