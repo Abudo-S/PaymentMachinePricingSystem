@@ -9,11 +9,10 @@ using Microsoft.AspNetCore.Builder;
 using LibHelpers;
 using System.Collections;
 using Grpc.Net.Client.Web;
-
-//IConfiguration configuration = new ConfigurationBuilder()
-//        .SetBasePath(Directory.GetCurrentDirectory())
-//        .AddJsonFile("appSettings.json", optional: false, reloadOnChange: false)
-//        .Build();
+using DayRateService;
+using Microsoft.Extensions.Configuration;
+using LibDTO;
+using DayRateService.DbServices;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,18 +20,18 @@ var builder = WebApplication.CreateBuilder(args);
 builder.Services.AddGrpc();//.AddServiceOptions(options => options.);
 builder.Services.AddGrpc().AddJsonTranscoding();
 
-builder.Services.AddReverseProxy()
-    .LoadFromConfig(builder.Configuration.GetSection("DayRateLoadBalancer"));
+//builder.Services.AddReverseProxy()
+//    .LoadFromConfig(builder.Configuration.GetSection("DayRateLoadBalancer"));
 
 //builder.Services.AddHealthChecks();
 
-//builder.Services.AddCors(o => o.AddPolicy("AllowAll", builder =>
-//{
-//    builder.AllowAnyOrigin()
-//           .AllowAnyMethod()
-//           .AllowAnyHeader()
-//           .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
-//})); 
+builder.Services.AddCors(o => o.AddPolicy("AllowAll", builder =>
+{
+    builder.AllowAnyOrigin()
+           .AllowAnyMethod()
+           .AllowAnyHeader()
+           .WithExposedHeaders("Grpc-Status", "Grpc-Message", "Grpc-Encoding", "Grpc-Accept-Encoding");
+}));
 
 //Response time optimization
 builder.Services.AddResponseCompression(opts =>
@@ -41,13 +40,19 @@ builder.Services.AddResponseCompression(opts =>
         new[] { "application/octet-stream" });
 });
 
+//if enabled, we can't overide ports through docker's container command
 //builder.WebHost.UseKestrel(option =>
 //{
 //    option.ListenAnyIP(80, config =>
 //    {
 //        config.Protocols = HttpProtocols.Http1AndHttp2;
-//        //config.UseHttps();
 //    });
+//    //if enabled YARP's HTTP request verion should be "2.0" + TLS certificate should be configured
+//    //option.ListenAnyIP(81, config =>
+//    //{
+//    //    config.Protocols = HttpProtocols.Http1AndHttp2;
+//    //    config.UseHttps();
+//    //});
 //});
 
 //Redis
@@ -56,23 +61,21 @@ builder.Services.AddStackExchangeRedisCache(options =>
     options.Configuration = builder.Configuration.GetConnectionString("Redis");
     options.InstanceName = "DayRateService_Redis";
 });
+
+//MongoDB
+builder.Services.Configure<PricingSystemDataBaseConfig>(
+    builder.Configuration.GetSection("PricingSystemDataBase"));
+builder.Services.AddSingleton<DayRateDbService>();
+
 //Dependency injection
 builder.Services.AddScoped<DayRateServices.DayRateService>();
 
-//builder.Services.AddGrpcClient<DayRateServices.DayRateService>(o => { o.Address = new Uri("http://localhost:5039"); })
-//.ConfigureChannel(o =>
-//{
-//    o.HttpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new
-//                  HttpClientHandler()));
-//});
-
-//List<string> clusterNodes = new List<string>();
-//builder.Configuration.GetSection("ClusterNodes").Bind(clusterNodes);
-//builder.Services.AddSingleton<IProxyConfigProvider>(
-//    new CustomLoadBalancerProxyProvider((string)(builder.Configuration.GetValue(typeof(string), "ClusterId") ?? "DayRateCluster"),
-//    clusterNodes,
-//    (string)(builder.Configuration.GetValue(typeof(string), "MatchingPath") ?? "{**catch-all}"))
-//    ).AddReverseProxy();
+List<string> clusterNodes = new List<string>();
+builder.Configuration.GetSection("ClusterNodes").Bind(clusterNodes);
+var customLBPP = new CustomLoadBalancerProxyProvider(clusterNodes);
+builder.Services.AddSingleton<IProxyConfigProvider>(customLBPP).AddReverseProxy();
+DayRateManager.Instance.Init(customLBPP, (DayRateDbService)builder.Services.BuildServiceProvider().GetRequiredService(typeof(DayRateDbService)),
+    (int)(builder.Configuration.GetValue(typeof(int), "MaxThreads") ?? 3));
 
 //builder.Services.Configure<KestrelServerOptions>(options => {
 //    options.ConfigureHttpsDefaults(options =>
@@ -94,7 +97,6 @@ app.UseStaticFiles();
 
 app.UseRouting();
 app.MapReverseProxy();
-
 
 // must be added after UseRouting and before UseEndpoints 
 //new GrpcWebOptions() { DefaultEnabled = true } -> applies default options that changes headers -cause compression error to YARP

@@ -33,11 +33,11 @@ namespace DayRateService.Services
         {
             try
             {
-                log.Info($"Invoked UpsertDayRate with RequestId: {request.RequestId}, DayRateId: {request.DayRate.Id}");
+                log.Info($"Invoked UpsertDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.DayRate.Id}");
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<UpsertDayRateRequest>(request.RequestId, request).Result
+                    Awk = cache.SetRecordAsync<UpsertDayRateRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -55,13 +55,13 @@ namespace DayRateService.Services
         {
             try
             {
-                log.Info($"Invoked GetDayRate with RequestId: {request.RequestId}");
+                log.Info($"Invoked GetDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
                 //WriteAndAssignRequest()
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<GetDayRateRequest>(request.RequestId, request).Result
+                    Awk = cache.SetRecordAsync<GetDayRateRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -79,13 +79,13 @@ namespace DayRateService.Services
         {
             try
             {
-                log.Info($"Invoked GetDayRates with RequestId: {request.RequestId}");
+                log.Info($"Invoked GetDayRates with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
                 //WriteAndAssignRequest()
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<GetDayRatesRequest>(request.RequestId, request).Result
+                    Awk = cache.SetRecordAsync<GetDayRatesRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -103,13 +103,13 @@ namespace DayRateService.Services
         {
             try
             {
-                log.Info($"Invoked DeleteDayRate with RequestId: {request.RequestId}, DayRateId: {request.Id}");
+                log.Info($"Invoked DeleteDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.Id}");
 
                 //WriteAndAssignRequest()
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<DeleteDayRateRequest>(request.RequestId, request).Result
+                    Awk = cache.SetRecordAsync<DeleteDayRateRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -127,13 +127,13 @@ namespace DayRateService.Services
         {
             try
             {
-                log.Info($"Invoked CalculateDayFee with RequestId: {request.RequestId}");
+                log.Info($"Invoked CalculateDayFee with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
                 //WriteAndAssignRequest()
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<CalculateDayFeeRequest>(request.RequestId, request).Result
+                    Awk = cache.SetRecordAsync<CalculateDayFeeRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)

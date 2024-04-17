@@ -1,10 +1,14 @@
-﻿using Microsoft.Extensions.Primitives;
+﻿using Microsoft.Extensions.Configuration;
+using Microsoft.Extensions.Diagnostics.HealthChecks;
+using Microsoft.Extensions.Primitives;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Yarp.ReverseProxy.Configuration;
+using Yarp.ReverseProxy.Forwarder;
+using Yarp.ReverseProxy.Health;
 using Yarp.ReverseProxy.LoadBalancing;
 
 namespace LibHelpers
@@ -12,13 +16,23 @@ namespace LibHelpers
     public class CustomLoadBalancerProxyProvider : IProxyConfigProvider
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+        private static IConfiguration configuration = new ConfigurationBuilder()
+                .SetBasePath(Directory.GetCurrentDirectory())
+                .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
+                .Build();
 
         private CustomMemoryConfig _config;
 
-        public CustomLoadBalancerProxyProvider(string clusterId, List<string> nodesAddrs, string matchingPath = "{**catch-all}")
+        public CustomLoadBalancerProxyProvider(List<string> nodesAddrs, bool useHTTP2 = false)
         {
-            log.Info($"Initialized CustomLoadBalancerProxyProvider with clusterId: {clusterId}, matchingPath: {matchingPath}, nodes: {string.Join(", ", nodesAddrs)}");
+            log.Info("Invoked CustomLoadBalancerProxyProvider()");
+
+            //get config params
+            var clusterId = (string)(configuration.GetValue(typeof(string), "ClusterId") ?? "DayRateCluster");
+            var matchingPath = (string)(configuration.GetValue(typeof(string), "MatchingPath") ?? "{**catch-all}");
             
+            log.Debug($"Initialized CustomLoadBalancerProxyProvider with clusterId: {clusterId}, matchingPath: {matchingPath}, nodes: {string.Join(", ", nodesAddrs)}");
+
             // Load a basic configuration
             // Should be based on your application needs.
             var routeConfig = new RouteConfig
@@ -28,6 +42,21 @@ namespace LibHelpers
                 Match = new RouteMatch
                 {
                     Path = matchingPath
+                },
+                Transforms = new List<Dictionary<string, string>>()
+                {
+                    new Dictionary<string, string>()
+                    {
+                        { "PathPattern", matchingPath.Replace("LoadBalancer/", "")}
+                    },
+                    new Dictionary<string, string>()
+                    {
+                        { "RequestHeadersCopy", true.ToString()}
+                    },
+                    new Dictionary<string, string>()
+                    {
+                        { "RequestHeaderOriginalHost", true.ToString()}
+                    }
                 }
             };
 
@@ -37,10 +66,34 @@ namespace LibHelpers
 
             for (var i = 1; i <= nodesAddrs.Count; i++)
             {
-                destinationNodes["destination" + i.ToString()] = new DestinationConfig {
-                    Address = nodesAddrs[i - 1] 
+                destinationNodes["destination" + i.ToString()] = new DestinationConfig
+                {
+                    Address = nodesAddrs[i - 1]
                 };
             }
+
+            //passive circuit breaker
+            //blocks temporaly the traffic for a cluster's node after a certain failure-policy rate
+            var healthCheck = new HealthCheckConfig
+            {
+                Passive = new PassiveHealthCheckConfig
+                {
+                    Enabled = true,
+                    Policy = HealthCheckConstants.PassivePolicy.TransportFailureRate,
+                    ReactivationPeriod = TimeSpan.FromMinutes(2)
+                }
+            };
+
+            var metadata = new Dictionary<string, string> { 
+                { TransportFailureRateHealthPolicyOptions.FailureRateLimitMetadataName, "0.5" } 
+            };
+
+            //HTTP/2 for grpc
+            var httpRequestConfigs = new ForwarderRequestConfig()
+            {
+                Version = new Version(useHTTP2?"2.0" : "1.1"), //should be 2.0 in case of https listening
+                VersionPolicy = HttpVersionPolicy.RequestVersionExact
+            };
 
             var clusterConfigs = new[]
             {
@@ -48,7 +101,10 @@ namespace LibHelpers
                 {
                     ClusterId = clusterId,
                     LoadBalancingPolicy = LoadBalancingPolicies.RoundRobin,
-                    Destinations = destinationNodes
+                    Destinations = destinationNodes,
+                    HealthCheck = healthCheck,
+                    Metadata = metadata,
+                    HttpRequest = httpRequestConfigs
                 }
             };
 

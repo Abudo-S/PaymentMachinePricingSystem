@@ -54,26 +54,26 @@ service TimeInterval {
 
 //STR Requests
 message UpsertTimeIntervalRequest {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
   TimeIntervalType TimeInterval = 2;
 }
 
 message GetTimeIntervalRequest {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
   int32 Id = 2;
 }
 
 message GetTimeIntervalsRequest {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
 }
 
 message DeleteTimeIntervalRequest {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
   int32 Id = 2;
 }
 
 message CalculateTimeIntervalFeeRequest {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
   int64 Start = 2; //duration in seconds
   int64 End = 3;  //duration in seconds
 }
@@ -81,30 +81,30 @@ message CalculateTimeIntervalFeeRequest {
 
 //STR Responses
 message UpsertTimeIntervalResponse {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
   GenericMessages.OperationResult Result = 2;
   TimeIntervalType TimeInterval = 3;
 }
 
 message GetTimeIntervalResponse {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
   GenericMessages.OperationResult Result = 2;
   TimeIntervalType TimeInterval = 3;
 }
 
 message GetTimeIntervalsResponse {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
   GenericMessages.OperationResult Result = 2;
   repeated TimeIntervalType TimeInterval = 3;
 }
 
 message DeleteTimeIntervalResponse {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
   GenericMessages.OperationResult Result = 2;
 }
 
 message CalculateTimeIntervalFeeResponse {
-  string RequestId = 1;
+  GenericMessages.GenericRequestData RequestCamp = 1;
   GenericMessages.OperationResult Result = 2;
   double Fee = 3;
 }

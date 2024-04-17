@@ -32,6 +32,7 @@
 #docker build . -t imageTag -f .\projFolder\Dockerfile
 #Sometimes you'll need to delete cached builds from docker desktop
 #To add relative redis image with container: docker run --name dayrateservice_redis -p 5002:6379 -d redis
+#To add relative mongodb image with container: docker run --name pricingSystem_mongodb -p 5003:6379 -d mongo
 #To run existing  .net image with configuration: docker run --name dayrateservice --rm -it -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORTS=8001  -e ASPNETCORE_HTTP_PORTS=8000 -d dayrateservice
 #only http container: docker run --name dayrateservice --rm -it -p 8000:80 -e ASPNETCORE_URLS="http://+" -e ASPNETCORE_HTTP_PORTS=80 -d dayrateservice
 #create network bridge and add running containers to them: docker network create paymentMachinePricingSystem_network
@@ -50,6 +51,7 @@ COPY ../DayRateService/ DayRateService/
 COPY ../LibDTO/ LibDTO/
 COPY ../LibProto/ LibProto/
 COPY ../LibHelpers/ LibHelpers/
+COPY ../DayRateService/appsettings.json .
 
 
 RUN dotnet restore "./LibHelpers/LibHelpers.csproj"

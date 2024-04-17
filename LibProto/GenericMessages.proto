@@ -7,7 +7,7 @@ message AsyncResult {
 }
 
 message OperationResult {
-	int32 RequestIdentifier = 1;
+	string RequestId= 1;
 	bool Elaborated = 2;
 }
 
@@ -16,4 +16,9 @@ message IsAliveRequest {
 
 message IsAliveResult {
 	bool IsAlive = 1;
+}
+
+message GenericRequestData {
+	string RequestId = 1;
+	double RequiredDelay = 2;
 }
