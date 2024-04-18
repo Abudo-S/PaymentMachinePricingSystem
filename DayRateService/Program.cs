@@ -13,6 +13,8 @@ using DayRateService;
 using Microsoft.Extensions.Configuration;
 using LibDTO;
 using DayRateService.DbServices;
+using AutoMapper;
+using LibDTO.Generic;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -67,6 +69,14 @@ builder.Services.Configure<PricingSystemDataBaseConfig>(
     builder.Configuration.GetSection("PricingSystemDataBase"));
 builder.Services.AddSingleton<DayRateDbService>();
 
+//AutoMapper proto<->DTO
+var mapperConfig = new MapperConfiguration(mc =>
+{
+    mc.AddProfile(new GenericMappingProfile());
+});
+IMapper mapper = mapperConfig.CreateMapper();
+builder.Services.AddSingleton(mapper);
+
 //Dependency injection
 builder.Services.AddScoped<DayRateServices.DayRateService>();
 
@@ -74,8 +84,12 @@ List<string> clusterNodes = new List<string>();
 builder.Configuration.GetSection("ClusterNodes").Bind(clusterNodes);
 var customLBPP = new CustomLoadBalancerProxyProvider(clusterNodes);
 builder.Services.AddSingleton<IProxyConfigProvider>(customLBPP).AddReverseProxy();
-DayRateManager.Instance.Init(customLBPP, (DayRateDbService)builder.Services.BuildServiceProvider().GetRequiredService(typeof(DayRateDbService)),
-    (int)(builder.Configuration.GetValue(typeof(int), "MaxThreads") ?? 3));
+DayRateManager.Instance.Init(customLBPP, 
+    (DayRateDbService)builder.Services.BuildServiceProvider().GetRequiredService(typeof(DayRateDbService)),
+    clusterNodes,
+    (string)(builder.Configuration.GetValue(typeof(string), "MiddlewareEndpoint") ?? 15000),
+    (int)(builder.Configuration.GetValue(typeof(int), "MaxThreads") ?? 3),
+    (int)(builder.Configuration.GetValue(typeof(int), "RequestExpiryInMilliseconds") ?? 15000));
 
 //builder.Services.Configure<KestrelServerOptions>(options => {
 //    options.ConfigureHttpsDefaults(options =>

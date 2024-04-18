@@ -20,5 +20,11 @@ message IsAliveResult {
 
 message GenericRequestData {
 	string RequestId = 1;
-	double RequiredDelay = 2;
+	int32 RequiredDelay = 2; //in millieconds, determined by remote client
+}
+
+message NotifyHandledRequestMsg {
+	string RequestId = 1;
+	double Expiry = 2; //in millieconds, determined by cluster node
+	string SenderIP = 3;
 }

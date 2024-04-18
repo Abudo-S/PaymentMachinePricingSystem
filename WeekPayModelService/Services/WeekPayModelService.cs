@@ -16,7 +16,7 @@ namespace WeekPayModelService.Services
         {
             try
             {
-                log.Info($"Invoked UpsertWeekPayModel with RequestId: {request.RequestId}, WeekPayModelId: {request.WeekPayModel.Id}");
+                log.Info($"Invoked UpsertWeekPayModel with RequestId: {request.RequestCamp.RequestId}, WeekPayModelId: {request.WeekPayModel.Id}");
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -38,7 +38,7 @@ namespace WeekPayModelService.Services
         {
             try
             {
-                log.Info($"Invoked GetWeekPayModel with RequestId: {request.RequestId}");
+                log.Info($"Invoked GetWeekPayModel with RequestId: {request.RequestCamp.RequestId}");
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -60,7 +60,7 @@ namespace WeekPayModelService.Services
         {
             try
             {
-                log.Info($"Invoked GetWeekPayModels with RequestId: {request.RequestId}");
+                log.Info($"Invoked GetWeekPayModels with RequestId: {request.RequestCamp.RequestId}");
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -82,7 +82,7 @@ namespace WeekPayModelService.Services
         {
             try
             {
-                log.Info($"Invoked DeleteWeekPayModel with RequestId: {request.RequestId}, WeekPayModelId: {request.Id}");
+                log.Info($"Invoked DeleteWeekPayModel with RequestId: {request.RequestCamp.RequestId}, WeekPayModelId: {request.Id}");
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -104,7 +104,7 @@ namespace WeekPayModelService.Services
         {
             try
             {
-                log.Info($"Invoked CalculateWeekPayModelFee with RequestId: {request.RequestId}");
+                log.Info($"Invoked CalculateWeekPayModelFee with RequestId: {request.RequestCamp.RequestId}");
 
                 return Task.FromResult(new AsyncResult
                 {

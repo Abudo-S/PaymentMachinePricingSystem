@@ -43,6 +43,13 @@ service DayRate {
       body: "*"
     };
   }
+  rpc NotifyHandledRequest (GenericMessages.NotifyHandledRequestMsg) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/NotifyHandledRequest"
+      body: "*"
+    };
+  }
   rpc IsAlive (GenericMessages.IsAliveResult) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
@@ -103,7 +110,7 @@ message DeleteDayRateResponse {
   GenericMessages.OperationResult Result = 2;
 }
 
-message CalculateDayRangeFeeResponse {
+message CalculateDayFeeResponse {
   GenericMessages.GenericRequestData RequestCamp = 1;
   GenericMessages.OperationResult Result = 2;
   double Fee = 3;

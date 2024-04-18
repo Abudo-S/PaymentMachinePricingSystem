@@ -7,6 +7,7 @@ using GenericMessages;
 using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Caching.Distributed;
 using LibHelpers;
+using AutoMapper;
 
 namespace DayRateService.Services
 {
@@ -14,10 +15,12 @@ namespace DayRateService.Services
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
         private IDistributedCache cache;
+        private IMapper mapper;
 
-        public DayRateService(IDistributedCache cache)
+        public DayRateService(IDistributedCache cache, IMapper mapper)
         {
             this.cache = cache;
+            this.mapper = mapper;
         }
 
         private bool WriteAndAssignRequest<T>(T request)
@@ -29,11 +32,17 @@ namespace DayRateService.Services
             return false;
         }
 
+        [ActionInterceptor]
         public override Task<AsyncResult> UpsertDayRate(UpsertDayRateRequest request, ServerCallContext context)
         {
             try
             {
                 log.Info($"Invoked UpsertDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.DayRate.Id}");
+
+                //async without waiting
+                DayRateManager.Instance.UpsertDayRate(request.RequestCamp.RequestId, mapper.Map<LibDTO.DayRate>(request.DayRate), request.RequestCamp.RequiredDelay);
+
+                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -57,7 +66,10 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked GetDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
-                //WriteAndAssignRequest()
+                //async without waiting
+                DayRateManager.Instance.GetDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
+
+                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -81,7 +93,10 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked GetDayRates with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
-                //WriteAndAssignRequest()
+                //async without waiting
+                DayRateManager.Instance.GetDayRates(request.RequestCamp.RequestId, request.RequestCamp.RequiredDelay);
+
+                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -105,7 +120,10 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked DeleteDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.Id}");
 
-                //WriteAndAssignRequest()
+                //async without waiting
+                DayRateManager.Instance.DeleteDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
+
+                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -128,8 +146,14 @@ namespace DayRateService.Services
             try
             {
                 log.Info($"Invoked CalculateDayFee with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
+                
+                //async without waiting
+                DayRateManager.Instance.CalculateDayFee(request.RequestCamp.RequestId,
+                    TimeSpan.FromSeconds(request.Start),
+                    TimeSpan.FromSeconds(request.End),
+                    request.RequestCamp.RequiredDelay);
 
-                //WriteAndAssignRequest()
+                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
 
                 return Task.FromResult(new AsyncResult
                 {

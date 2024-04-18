@@ -21,19 +21,28 @@ namespace DayRateService.DbServices
                 pricingSystemDataBaseConfig.Value.DayRateCollectionName);
         }
 
-        public async Task<List<DayRate>> GetAsync() =>
+        public async Task<List<DayRate>> GetAllAsync() =>
             await dayRateCollection.Find(_ => true).ToListAsync();
 
         public async Task<DayRate?> GetAsync(string id) =>
             await dayRateCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
 
-        public async Task CreateAsync(DayRate newBook) =>
-            await dayRateCollection.InsertOneAsync(newBook);
+        public async Task<bool> CreateAsync(DayRate dayRate) 
+        {
+            try
+            {
+                await dayRateCollection.InsertOneAsync(dayRate);
+                return true;
+            }
+            catch (Exception _) { }
+            return false;
+        }
+            
 
-        public async Task UpdateAsync(string id, DayRate updatedBook) =>
-            await dayRateCollection.ReplaceOneAsync(x => x.Id == id, updatedBook);
+        public async Task<bool> UpdateAsync(string id, DayRate dayRate) =>
+            (await dayRateCollection.ReplaceOneAsync(x => x.Id == id, dayRate)).IsAcknowledged;
 
-        public async Task RemoveAsync(string id) =>
-            await dayRateCollection.DeleteOneAsync(x => x.Id == id);
+        public async Task<bool> RemoveAsync(string id) =>
+            (await dayRateCollection.DeleteOneAsync(x => x.Id == id)).IsAcknowledged;
     }
 }

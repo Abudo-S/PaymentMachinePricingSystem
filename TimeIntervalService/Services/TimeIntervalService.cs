@@ -16,7 +16,7 @@ namespace TimeIntervalService.Services
         {
             try
             {
-                log.Info($"Invoked UpsertTimeInterval with RequestId: {request.RequestId}, TimeIntervalId: {request.TimeInterval.Id}");
+                log.Info($"Invoked UpsertTimeInterval with RequestId: {request.RequestCamp.RequestId}, TimeIntervalId: {request.TimeInterval.Id}");
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -38,7 +38,7 @@ namespace TimeIntervalService.Services
         {
             try
             {
-                log.Info($"Invoked GetTimeInterval with RequestId: {request.RequestId}");
+                log.Info($"Invoked GetTimeInterval with RequestId: {request.RequestCamp.RequestId}");
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -60,7 +60,7 @@ namespace TimeIntervalService.Services
         {
             try
             {
-                log.Info($"Invoked GetTimeIntervals with RequestId: {request.RequestId}");
+                log.Info($"Invoked GetTimeIntervals with RequestId: {request.RequestCamp.RequestId}");
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -82,7 +82,7 @@ namespace TimeIntervalService.Services
         {
             try
             {
-                log.Info($"Invoked DeleteTimeInterval with RequestId: {request.RequestId}, TimeIntervalId: {request.Id}");
+                log.Info($"Invoked DeleteTimeInterval with RequestId: {request.RequestCamp.RequestId}, TimeIntervalId: {request.Id}");
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -104,7 +104,7 @@ namespace TimeIntervalService.Services
         {
             try
             {
-                log.Info($"Invoked CalculateTimeIntervalFee with RequestId: {request.RequestId}");
+                log.Info($"Invoked CalculateTimeIntervalFee with RequestId: {request.RequestCamp.RequestId}");
 
                 return Task.FromResult(new AsyncResult
                 {
