@@ -170,5 +170,104 @@ namespace DayRateService.Services
                 Awk = false
             });
         }
+
+        public override Task<SyncResult> NotifyHandledRequest(NotifyHandledRequestMsg request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked NotifyHandledRequest with RequestId: {request.RequestId}");
+
+                DayRateManager.Instance.AppendNotifiedRequest(request.RequestId, request.Expiry);
+
+                return Task.FromResult(new SyncResult
+                {
+                    Result = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In NotifyHandledRequest()!");
+            }
+
+            return Task.FromResult(new SyncResult
+            {
+                Result = false
+            });
+        }
+
+        /// <summary>
+        /// [BullyElection] invoked when another cluster's node (with lower nodeId) notices coordinator inactivity
+        /// </summary>
+        /// <param name="request"></param>
+        /// <param name="context"></param>
+        /// <returns></returns>
+        public override Task<SyncResult> CanICoordinate(CanICoordinateRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked CanICoordinate with NodeId: {request.NodeId}");
+
+                return Task.FromResult(new SyncResult
+                {
+                    Result = DayRateManager.Instance.CheckIfNodeIdHigher(request.NodeId)
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In CanICoordinate()!");
+            }
+
+            return Task.FromResult(new SyncResult
+            {
+                Result = false
+            });
+        }
+
+
+        public override Task<SyncResult> ConsiderNodeCoordinator(ConsiderNodeCoordinatorRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked ConsiderNodeCoordinator");
+
+                return Task.FromResult(new SyncResult
+                {
+                    Result = DayRateManager.Instance.StartCoordinatorActivity()
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In ConsiderNodeCoordinator()!");
+            }
+
+            return Task.FromResult(new SyncResult
+            {
+                Result = false
+            });
+        }
+
+        public override Task<SyncResult> IsAlive(IsAliveRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked IsAlive");
+
+                DayRateManager.Instance.CaptureCoordinator(request.SenderIP);
+
+                return Task.FromResult(new SyncResult
+                {
+                    Result = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In IsAlive()!");
+            }
+
+            return Task.FromResult(new SyncResult
+            {
+                Result = false
+            });
+        }
     }
 }

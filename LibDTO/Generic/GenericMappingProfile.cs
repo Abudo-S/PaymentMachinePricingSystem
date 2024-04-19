@@ -5,7 +5,6 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using MicroservicesProtos;
-using LibDTO;
 
 namespace LibDTO.Generic
 {
@@ -14,16 +13,16 @@ namespace LibDTO.Generic
         public GenericMappingProfile()
         {
             //WeekPayModel
-            CreateMap<WeekPayModelType, LibDTO.WeekPayModel>();
-            CreateMap<LibDTO.WeekPayModel, WeekPayModelType>();
+            CreateMap<WeekPayModelType, WeekPayModel>();
+            CreateMap<WeekPayModel, WeekPayModelType>();
 
             //DayRate
-            CreateMap<DayRateType, LibDTO.DayRate>();
-            CreateMap<LibDTO.DayRate, DayRateType>();
+            CreateMap<DayRateType, DayRate>();
+            CreateMap<DayRate, DayRateType>();
 
             //TimeInterval
-            CreateMap<TimeIntervalType, LibDTO.TimeInterval>();
-            CreateMap<LibDTO.TimeInterval, TimeIntervalType>();
+            CreateMap<TimeIntervalType, TimeInterval>();
+            CreateMap<TimeInterval, TimeIntervalType>();
         }
     }
 }

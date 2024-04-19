@@ -6,7 +6,7 @@
         "ASPNETCORE_ENVIRONMENT": "Development"
       },
       "dotnetRunMessages": true,
-      "applicationUrl": "http://localhost:5248"
+      "applicationUrl": "http://localhost:81"
     },
     "https": {
       "commandName": "Project",
@@ -20,7 +20,8 @@
       "commandName": "Docker",
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
       "environmentVariables": {
-        "ASPNETCORE_HTTP_PORTS": "8080"
+        "ASPNETCORE_HTTP_PORTS": "8090",
+        "ASPNETCORE_HTTPS_PORTS": "8091"
       },
       "publishAllPorts": true
     }

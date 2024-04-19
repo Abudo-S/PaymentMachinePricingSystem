@@ -6,16 +6,18 @@ message AsyncResult {
 	bool Awk = 1;
 }
 
+message SyncResult {
+	bool Result = 1;
+}
+
 message OperationResult {
 	string RequestId= 1;
 	bool Elaborated = 2;
 }
 
-message IsAliveRequest {
-}
-
-message IsAliveResult {
-	bool IsAlive = 1;
+message IsAliveRequest 
+{
+	string SenderIP = 1;
 }
 
 message GenericRequestData {
@@ -26,5 +28,13 @@ message GenericRequestData {
 message NotifyHandledRequestMsg {
 	string RequestId = 1;
 	double Expiry = 2; //in millieconds, determined by cluster node
-	string SenderIP = 3;
+	//string SenderIP = 3;
+}
+
+message CanICoordinateRequest {
+	int32 NodeId = 1; //used in Bully election
+}
+
+message ConsiderNodeCoordinatorRequest { //to initialize coordinator logic and start pinging cluster nodes
+	
 }

@@ -15,6 +15,7 @@ using LibDTO;
 using DayRateService.DbServices;
 using AutoMapper;
 using LibDTO.Generic;
+using Microsoft.Extensions.Caching.Distributed;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -42,7 +43,7 @@ builder.Services.AddResponseCompression(opts =>
         new[] { "application/octet-stream" });
 });
 
-//if enabled, we can't overide ports through docker's container command
+//if enabled, we can't overide ports through docker's container-command
 //builder.WebHost.UseKestrel(option =>
 //{
 //    option.ListenAnyIP(80, config =>
@@ -84,8 +85,9 @@ List<string> clusterNodes = new List<string>();
 builder.Configuration.GetSection("ClusterNodes").Bind(clusterNodes);
 var customLBPP = new CustomLoadBalancerProxyProvider(clusterNodes);
 builder.Services.AddSingleton<IProxyConfigProvider>(customLBPP).AddReverseProxy();
-DayRateManager.Instance.Init(customLBPP, 
+DayRateManager.Instance.Init<MicroservicesProtos.DayRate.DayRateClient>(customLBPP, 
     (DayRateDbService)builder.Services.BuildServiceProvider().GetRequiredService(typeof(DayRateDbService)),
+    (IDistributedCache)builder.Services.BuildServiceProvider().GetRequiredService(typeof(IDistributedCache)),
     clusterNodes,
     (string)(builder.Configuration.GetValue(typeof(string), "MiddlewareEndpoint") ?? 15000),
     (int)(builder.Configuration.GetValue(typeof(int), "MaxThreads") ?? 3),

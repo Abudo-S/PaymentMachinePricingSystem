@@ -43,14 +43,28 @@ service DayRate {
       body: "*"
     };
   }
-  rpc NotifyHandledRequest (GenericMessages.NotifyHandledRequestMsg) returns (GenericMessages.AsyncResult)
+  rpc NotifyHandledRequest (GenericMessages.NotifyHandledRequestMsg) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {
       post: "/HttpAPI/MicroservicesProtos/DayRate/NotifyHandledRequest"
       body: "*"
     };
   }
-  rpc IsAlive (GenericMessages.IsAliveResult) returns (GenericMessages.AsyncResult)
+  rpc CanICoordinate (GenericMessages.CanICoordinateRequest) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/CanICoordinate"
+      body: "*"
+    };
+  }
+  rpc ConsiderNodeCoordinator (GenericMessages.ConsiderNodeCoordinatorRequest) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/ConsiderNodeCoordinator"
+      body: "*"
+    };
+  }
+  rpc IsAlive (GenericMessages.IsAliveRequest) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {
       post: "/HttpAPI/MicroservicesProtos/DayRate/IsAlive"

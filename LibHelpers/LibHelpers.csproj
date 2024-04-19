@@ -18,7 +18,6 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\LibDTO\LibDTO.csproj" />
     <ProjectReference Include="..\LibProto\LibProto.csproj" />
   </ItemGroup>
 

@@ -43,7 +43,7 @@ service TimeInterval {
       body: "*"
     };
   }
-  rpc IsAlive (GenericMessages.IsAliveResult) returns (GenericMessages.AsyncResult)
+  rpc IsAlive (GenericMessages.IsAliveRequest) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {
       post: "/HttpAPI/MicroservicesProtos/TimeInterval/IsAlive"
