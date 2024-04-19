@@ -7,6 +7,7 @@ using LibHelpers;
 using MicroservicesProtos;
 using System.Net;
 using System.Net.Sockets;
+using System.Timers;
 
 namespace DayRateService
 {
@@ -271,8 +272,15 @@ namespace DayRateService
 
             try
             {
-                //StartClusterNodesPinging()
-                //stop coordinator tracer timer
+                StartClusterNodesPinging();
+
+                lock (currentClusterCoordinatorLock)
+                {
+                    currentClusterCoordinatorIp = null;
+
+                    //stop coordinator tracer timer
+                    coordinatorTraceTimer.Stop();
+                }
             }
             catch (Exception ex)
             {
@@ -298,7 +306,32 @@ namespace DayRateService
         {
             try
             {
-                //cancel trace coordinator failure timer
+                lock (currentClusterCoordinatorLock)
+                {
+                    if (currentClusterCoordinatorIp != null)
+                    {
+                        currentClusterCoordinatorIp = coordinatorIp;
+                        coordinatorTraceTimer.Stop();
+                        coordinatorTraceTimer.Start();
+                    }
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, "In CaptureCoordinator()!");
+            }
+        }
+
+        public override void CaptureInactiveCoordinator(object source, ElapsedEventArgs e)
+        {
+            try
+            {
+                log.Info($"Invoked CaptureInactiveCoordinator currentCoordinatorIp: {currentClusterCoordinatorIp}");
+
+                if (Monitor.TryEnter(bullyElectionLock))
+                {
+                    CanBeCoordinator_Bully();
+                }
             }
             catch (Exception ex)
             {

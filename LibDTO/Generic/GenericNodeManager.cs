@@ -8,6 +8,7 @@ using System.Text;
 using System.Threading.Tasks;
 using LibHelpers;
 using Microsoft.Extensions.Caching.Distributed;
+using System.Timers;
 
 namespace LibDTO.Generic
 {
@@ -19,6 +20,12 @@ namespace LibDTO.Generic
         /// node id is obtained through machineIP.GetHashCode();
         /// </summary>
         protected string machineIP;
+
+        /// <summary>
+        /// it changes due to coordinator inactivity
+        /// </summary>
+        protected string currentClusterCoordinatorIp;
+        protected object currentClusterCoordinatorLock;
 
         protected int nThreads;
 
@@ -43,6 +50,8 @@ namespace LibDTO.Generic
         protected List<string> heigherClusterNodes;
 
         protected object dbService;
+
+        protected System.Timers.Timer coordinatorTraceTimer;
 
         /// <summary>
         /// referenced in case of updating cluster nodes: currentLoadBalancer.Update()
@@ -139,5 +148,16 @@ namespace LibDTO.Generic
 
             return results.ToList();
         }
+
+        public void InitCoordinatorInactivityTimer()
+        {
+            coordinatorTraceTimer = new System.Timers.Timer(90000); //1.5 min 
+            coordinatorTraceTimer.Elapsed += CaptureInactiveCoordinator;
+            coordinatorTraceTimer.AutoReset = true;
+
+            coordinatorTraceTimer.Start();
+        }
+
+        public abstract void CaptureInactiveCoordinator(Object source, ElapsedEventArgs e);
     }
 }
