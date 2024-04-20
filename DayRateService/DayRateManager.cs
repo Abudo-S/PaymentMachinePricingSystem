@@ -147,7 +147,6 @@ namespace DayRateService
             }
         }
 
-
         public async Task DeleteDayRate(string requestId, int id, int delayInMilliseconds = 0)
         {
             var result = false;
@@ -187,6 +186,11 @@ namespace DayRateService
             try
             {
                 //to be implemented
+
+                //build return elaborated message request to the middleware through grpc
+
+                //if awk = true, delete request Id from cache
+                cache.RemoveAsync(requestId);
             }
             catch (Exception ex)
             {
@@ -235,24 +239,27 @@ namespace DayRateService
 
                 lock (bullyElectionLock)
                 {
-                    Func<string, Task<bool>> taskFactory = async (heigherClusterNode) =>
+                    Func<string, Task<KeyValuePair<string, bool>>> taskFactory = async (heigherClusterNode) =>
                     {
                         try
                         {
                             var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(heigherClusterNode);
-                            return ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).CanICoordinate(new GenericMessages.CanICoordinateRequest()
-                            {
-                                NodeId = nodeId
-                            }, deadline: DateTime.UtcNow.AddSeconds(8)).Result;
+                            return KeyValuePair.Create(
+                                heigherClusterNode,
+                                ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).CanICoordinate(new GenericMessages.CanICoordinateRequest()
+                                {
+                                    NodeId = nodeId
+                                }, deadline: DateTime.UtcNow.AddSeconds(8)).Result
+                            );
                         }
                         catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded) //if a cluster node doesn't respond in time, then consider an acceptance
                         {
-                            return true;
+                            return KeyValuePair.Create(heigherClusterNode, true);
                         }
                     };
 
                     //send CanICoordinate to all heigher nodes
-                    var result = !RunTasksAndAggregate(heigherClusterNodes, taskFactory).Result.Contains(false);
+                    var result = !RunTasksAndAggregate(heigherClusterNodes, taskFactory).Result.Any(kvp => kvp.Value == false);
 
                     if(result) //election won
                     {
@@ -272,8 +279,6 @@ namespace DayRateService
 
             try
             {
-                StartClusterNodesPinging();
-
                 lock (currentClusterCoordinatorLock)
                 {
                     currentClusterCoordinatorIp = null;
@@ -281,6 +286,8 @@ namespace DayRateService
                     //stop coordinator tracer timer
                     coordinatorTraceTimer.Stop();
                 }
+
+                InitPingingTimer(PingClusterNodes);
             }
             catch (Exception ex)
             {
@@ -290,15 +297,40 @@ namespace DayRateService
             return result;
         }
 
-        private async Task StartClusterNodesPinging()
+        private void PingClusterNodes(Object source, ElapsedEventArgs e)
         {
             try
             {
-                //to be implemented
+                Func<string, Task<KeyValuePair<string, bool>>> taskFactory = async (otherClusterNode) =>
+                {
+                    try
+                    {
+                        var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                        return KeyValuePair.Create(
+                            otherClusterNode,
+                            ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).IsAlive(new GenericMessages.IsAliveRequest
+                            {
+                                SenderIP = machineIP
+                            }, deadline: DateTime.UtcNow.AddSeconds(8)).Result
+                        );
+                    }
+                    catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded) //if a cluster node doesn't respond in time, then consider an acceptance
+                    {
+                        return KeyValuePair.Create(otherClusterNode, false);
+                    }
+                };
+
+                //send IsAlive to all other nodes
+                var offlineNodes = RunTasksAndAggregate(otherClusterNodes, taskFactory).Result
+                            .Where(kvp => kvp.Value == false)
+                            .Select(kvp => kvp.Key)
+                            .ToList();
+
+                log.Debug($"Detected offlineNodes: {string.Join(",", offlineNodes)}");
             }
             catch (Exception ex)
             {
-                log.Error(ex, "In StartClusterNodesPinging()!");
+                log.Error(ex, "In PingClusterNodes()!");
             }
         }
 
@@ -308,11 +340,18 @@ namespace DayRateService
             {
                 lock (currentClusterCoordinatorLock)
                 {
-                    if (currentClusterCoordinatorIp != null)
+                    if (currentClusterCoordinatorIp != null) //should be modified, consider late coordinator response after election won
                     {
+                        //in case of received CaptureCoordinator, which means that this node isn't a coordinator anymore
+                        clusterNodesTimer.Stop();
+
                         currentClusterCoordinatorIp = coordinatorIp;
                         coordinatorTraceTimer.Stop();
                         coordinatorTraceTimer.Start();
+                    }
+                    else //first time to coordinator inactivity initialize timer
+                    {
+                        InitCoordinatorInactivityTimer(CaptureInactiveCoordinator);
                     }
                 }
             }
@@ -322,7 +361,7 @@ namespace DayRateService
             }
         }
 
-        public override void CaptureInactiveCoordinator(object source, ElapsedEventArgs e)
+        public void CaptureInactiveCoordinator(object source, ElapsedEventArgs e)
         {
             try
             {
@@ -337,6 +376,38 @@ namespace DayRateService
             {
                 log.Error(ex, "In CaptureCoordinator()!");
             }
+        }
+
+        public override bool AddClusterNode(string clusterNodeuri)
+        {
+            try
+            {
+                log.Info($"Invoked AddClusterNode clusterNodeuri: {clusterNodeuri}");
+
+                //to be implemented
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, "In CaptureCoordinator()!");
+            }
+
+            return false;
+        }
+
+        public override bool RemoveClusterNode(string clusterNodeuri)
+        {
+            try
+            {
+                log.Info($"Invoked CaptureInactiveCoordinator clusterNodeuri: {clusterNodeuri}");
+
+                //to be implemented
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, "In CaptureCoordinator()!");
+            }
+
+            return false;
         }
         #endregion
     }

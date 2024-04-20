@@ -64,6 +64,27 @@ service DayRate {
       body: "*"
     };
   }
+  rpc GetCoordinatorIp (GenericMessages.GetCoordinatorIpRequest) returns (GenericMessages.GetCoordinatorIpResponse)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/GetCoordinatorIp"
+      body: "*"
+    };
+  }
+  rpc AddClusterNode (GenericMessages.AddOrRemoveClusterNodeRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/AddClusterNode"
+      body: "*"
+    };
+  }
+  rpc RemoveClusterNode (GenericMessages.AddOrRemoveClusterNodeRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/RemoveClusterNode"
+      body: "*"
+    };
+  }
   rpc IsAlive (GenericMessages.IsAliveRequest) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {

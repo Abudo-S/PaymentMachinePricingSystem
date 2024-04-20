@@ -16,6 +16,8 @@ namespace LibDTO.Generic
     {
         protected static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
+        protected bool isCoordinator;
+
         /// <summary>
         /// node id is obtained through machineIP.GetHashCode();
         /// </summary>
@@ -52,6 +54,7 @@ namespace LibDTO.Generic
         protected object dbService;
 
         protected System.Timers.Timer coordinatorTraceTimer;
+        protected System.Timers.Timer clusterNodesTimer;
 
         /// <summary>
         /// referenced in case of updating cluster nodes: currentLoadBalancer.Update()
@@ -149,15 +152,36 @@ namespace LibDTO.Generic
             return results.ToList();
         }
 
-        public void InitCoordinatorInactivityTimer()
+        public void InitCoordinatorInactivityTimer(ElapsedEventHandler onElapsedTimer)
         {
             coordinatorTraceTimer = new System.Timers.Timer(90000); //1.5 min 
-            coordinatorTraceTimer.Elapsed += CaptureInactiveCoordinator;
+            coordinatorTraceTimer.Elapsed += onElapsedTimer;
             coordinatorTraceTimer.AutoReset = true;
 
             coordinatorTraceTimer.Start();
         }
 
-        public abstract void CaptureInactiveCoordinator(Object source, ElapsedEventArgs e);
+        public void InitPingingTimer(ElapsedEventHandler onElapsedTimer)
+        {
+            clusterNodesTimer = new System.Timers.Timer(8000); //8 sec 
+            clusterNodesTimer.Elapsed += onElapsedTimer;
+            clusterNodesTimer.AutoReset = true;
+
+            clusterNodesTimer.Start();
+        }
+
+        public abstract bool AddClusterNode(string clusterNodeuri);
+
+        public abstract bool RemoveClusterNode(string clusterNodeuri);
+
+        public string GetCoordinatorIp()
+        {
+            if (!string.IsNullOrEmpty(currentClusterCoordinatorIp))
+                return currentClusterCoordinatorIp;
+            else if (isCoordinator)
+                return this.machineIP;
+            else
+                return "Undefined";
+        }
     }
 }

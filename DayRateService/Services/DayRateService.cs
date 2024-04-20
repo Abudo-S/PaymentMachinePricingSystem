@@ -246,6 +246,27 @@ namespace DayRateService.Services
             });
         }
 
+        public override Task<GetCoordinatorIpResponse> GetCoordinatorIp(GetCoordinatorIpRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked GetCoordinatorIp");
+
+                return Task.FromResult(new GetCoordinatorIpResponse
+                {
+                    CoordinatorIp = DayRateManager.Instance.GetCoordinatorIp()
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In GetCoordinatorIp()!");
+            }
+
+            return Task.FromResult(new GetCoordinatorIpResponse
+            {
+                CoordinatorIp = "ERROR"
+            });
+        }
         public override Task<SyncResult> IsAlive(IsAliveRequest request, ServerCallContext context)
         {
             try
@@ -267,6 +288,51 @@ namespace DayRateService.Services
             return Task.FromResult(new SyncResult
             {
                 Result = false
+            });
+        }
+
+        public override Task<AsyncResult> AddClusterNode(AddOrRemoveClusterNodeRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked AddClusterNode with clusterNodeUri: {request.ClusterNodeUri}");
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = DayRateManager.Instance.AddClusterNode(request.ClusterNodeUri)
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In RemoveClusterNode()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
+
+        public override Task<AsyncResult> RemoveClusterNode(AddOrRemoveClusterNodeRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked RemoveClusterNode with clusterNodeUri: {request.ClusterNodeUri}");
+
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = DayRateManager.Instance.RemoveClusterNode(request.ClusterNodeUri)
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In RemoveClusterNode()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
             });
         }
     }
