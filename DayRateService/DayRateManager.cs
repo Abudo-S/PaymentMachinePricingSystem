@@ -5,9 +5,11 @@ using LibDTO;
 using LibDTO.Generic;
 using LibHelpers;
 using MicroservicesProtos;
+using Microsoft.AspNetCore.Authentication;
 using System.Net;
 using System.Net.Sockets;
 using System.Timers;
+using static Google.Rpc.Context.AttributeContext.Types;
 
 namespace DayRateService
 {
@@ -31,24 +33,35 @@ namespace DayRateService
         /// notifies all cluster nodes of handled requests
         /// </summary>
         /// <returns></returns>
-        public async Task NotifyHandledRequest(string requestId)
+        public bool NotifyHandledRequest(string requestId)
         {
             try
             {
-                foreach (var clusterNode in otherClusterNodes)
+                Func<string, Task<KeyValuePair<string, bool>>> taskFactory = async (otherClusterNode) =>
                 {
-                    var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(clusterNode);
-                    ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).NotifyHandledRequest(new GenericMessages.NotifyHandledRequestMsg()
+                    return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                     {
-                        RequestId = requestId,
-                        Expiry = requestExpiryInMilliseconds
-                    });
-                }
+                        var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                        return KeyValuePair.Create(
+                            otherClusterNode,
+                            ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).NotifyHandledRequest(new GenericMessages.NotifyHandledRequestMsg()
+                            {
+                                RequestId = requestId,
+                                Expiry = requestExpiryInMilliseconds
+                            }).Result);
+                    }).Result;
+                };
+
+                _ = RunTasksAndAggregate(otherClusterNodes, taskFactory);
+
+                return true;
             }
             catch (Exception ex)
             {
                 log.Error(ex, "In NotifyHandledRequest()!");
             }
+
+            return false;
         }
 
         /// <summary>
@@ -58,7 +71,7 @@ namespace DayRateService
         {
             try
             {
-                //to be implemented
+                ThreadPool.QueueUserWorkItem()
             }
             catch (Exception ex)
             {
@@ -76,24 +89,30 @@ namespace DayRateService
                 log.Info($"Invoked UpsertDayRate with id {dayRate.Id}");
 
                 //apply delay
-                Task.Delay(delayInMilliseconds * 1000);
+                await Task.Delay(delayInMilliseconds * 1000);
 
-                var dbDayRate = await ((DayRateDbService)dbService).GetAsync(dayRate.Id);
-
-                if (dbDayRate == null) //create operation
+                await redisCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
-                    result = await ((DayRateDbService)dbService).CreateAsync(dayRate);
-                }
-                else //update
-                {
-                    result = await ((DayRateDbService)dbService).UpdateAsync(dayRate.Id, dayRate);
-                }
+                    var dbDayRate = await ((DayRateDbService)dbService).GetAsync(dayRate.Id);
 
-                //build return/result elaborated message request to the middleware through grpc
+                    if (dbDayRate == null) //create operation
+                    {
+                        result = await ((DayRateDbService)dbService).CreateAsync(dayRate);
+                    }
+                    else //update
+                    {
+                        result = await ((DayRateDbService)dbService).UpdateAsync(dayRate.Id, dayRate);
+                    }
 
+                    await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        //build return/result elaborated message request to the middleware through grpc
+                    });
 
-                //if awk = true, delete request Id from cache
-                cache.RemoveAsync(requestId);
+                    //if awk = true, delete request Id from cache
+                    _ = cache.RemoveAsync(requestId);
+                });
+
             }
             catch(Exception ex)
             {
@@ -110,14 +129,21 @@ namespace DayRateService
                 log.Info($"Invoked GetDayRate with id: {id}");
 
                 //apply delay
-                Task.Delay(delayInMilliseconds * 1000);
+                await Task.Delay(delayInMilliseconds * 1000);
 
-                var dbDayRate = await ((DayRateDbService)dbService).GetAsync(id.ToString());
+                await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                {
+                    var dbDayRate = await ((DayRateDbService)dbService).GetAsync(id.ToString());
 
-                //build return/result elaborated message request to the middleware through grpc
+                    await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        //build return/result elaborated message request to the middleware through grpc
+                    });
 
-                //if awk = true, delete request Id from cache
-                cache.RemoveAsync(requestId);
+                    //if awk = true, delete request Id from cache
+                    cache.RemoveAsync(requestId);
+                });
+
             }
             catch (Exception ex)
             {
@@ -132,14 +158,20 @@ namespace DayRateService
             try
             {
                 //apply delay
-                Task.Delay(delayInMilliseconds * 1000);
+                await Task.Delay(delayInMilliseconds * 1000);
 
                 var dbDayRates = await ((DayRateDbService)dbService).GetAllAsync();
 
-                //build return elaborated message request to the middleware through grpc
+                await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                {
+                    await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        //build return/result elaborated message request to the middleware through grpc
+                    });
 
-                //if awk = true, delete request Id from cache
-                cache.RemoveAsync(requestId);
+                    //if awk = true, delete request Id from cache
+                    cache.RemoveAsync(requestId);
+                });
             }
             catch (Exception ex)
             {
@@ -154,7 +186,7 @@ namespace DayRateService
             try
             {
                 //apply delay
-                Task.Delay(delayInMilliseconds * 1000);
+                await Task.Delay(delayInMilliseconds * 1000);
 
                 result = await ((DayRateDbService)dbService).RemoveAsync(id.ToString());
 
@@ -181,10 +213,13 @@ namespace DayRateService
         /// <param name="end"></param>
         /// <param name="delayInMilliseconds"></param>
         /// <returns></returns>
-        public async Task CalculateDayFee(string requestId, TimeSpan start, TimeSpan end, double delayInMilliseconds = 0)
+        public async Task CalculateDayFee(string requestId, TimeSpan start, TimeSpan end, int delayInMilliseconds = 0)
         {
             try
             {
+                //apply delay
+                await Task.Delay(delayInMilliseconds * 1000);
+
                 //to be implemented
 
                 //build return elaborated message request to the middleware through grpc
@@ -214,7 +249,7 @@ namespace DayRateService
                 var result = Monitor.TryEnter(bullyElectionLock) && anotherNodeId < machineIP.GetHashCode();
 
                 if (result)
-                    CanBeCoordinator_Bully();
+                    _ = CanBeCoordinator_Bully();
 
                 return !result;
             }
@@ -243,20 +278,26 @@ namespace DayRateService
                     {
                         try
                         {
-                            var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(heigherClusterNode);
-                            return KeyValuePair.Create(
-                                heigherClusterNode,
-                                ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).CanICoordinate(new GenericMessages.CanICoordinateRequest()
-                                {
-                                    NodeId = nodeId
-                                }, deadline: DateTime.UtcNow.AddSeconds(8)).Result
-                            );
+                            //should exclude RpcException with StatusCode.DeadlineExceeded
+                            return await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                            {
+                                var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(heigherClusterNode);
+                                return KeyValuePair.Create(
+                                    heigherClusterNode,
+                                    ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).CanICoordinate(new GenericMessages.CanICoordinateRequest()
+                                    {
+                                        NodeId = nodeId
+                                    }, deadline: DateTime.UtcNow.AddSeconds(8)).Result
+                                );
+                            });
                         }
                         catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded) //if a cluster node doesn't respond in time, then consider an acceptance
                         {
                             return KeyValuePair.Create(heigherClusterNode, true);
                         }
                     };
+
+                    var heigherClusterNodes = otherClusterNodes.Where(clusterNode => clusterNode.Replace("http://", "").GetHashCode() > machineIP.GetHashCode()).ToList();
 
                     //send CanICoordinate to all heigher nodes
                     var result = !RunTasksAndAggregate(heigherClusterNodes, taskFactory).Result.Any(kvp => kvp.Value == false);
@@ -279,8 +320,11 @@ namespace DayRateService
 
             try
             {
+                log.Info("Invoked StartCoordinatorActivity");
+
                 lock (currentClusterCoordinatorLock)
                 {
+                    isCoordinator = true;
                     currentClusterCoordinatorIp = null;
 
                     //stop coordinator tracer timer
@@ -297,6 +341,36 @@ namespace DayRateService
             return result;
         }
 
+        /// <summary>
+        /// in case of new coordinator elected and this node is considered as a time-out coordinator
+        /// </summary>
+        /// <param name="currentCoordinator"></param>
+        /// <returns></returns>
+        public bool StopCoordinatorActivity(string currentCoordinator)
+        {
+            bool result = false;
+
+            try
+            {
+                log.Info("Invoked StopCoordinatorActivity");
+
+                lock (currentClusterCoordinatorLock)
+                {
+                    isCoordinator = false;
+                    currentClusterCoordinatorIp = currentCoordinator;
+
+                    //start coordinator tracer timer
+                    coordinatorTraceTimer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, "In StopCoordinatorActivity()!");
+            }
+
+            return result;
+        }
+
         private void PingClusterNodes(Object source, ElapsedEventArgs e)
         {
             try
@@ -305,14 +379,18 @@ namespace DayRateService
                 {
                     try
                     {
-                        var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
-                        return KeyValuePair.Create(
-                            otherClusterNode,
-                            ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).IsAlive(new GenericMessages.IsAliveRequest
-                            {
-                                SenderIP = machineIP
-                            }, deadline: DateTime.UtcNow.AddSeconds(8)).Result
-                        );
+                        //should exclude RpcException with StatusCode.DeadlineExceeded
+                        return await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                        {
+                            var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                            return KeyValuePair.Create(
+                                otherClusterNode,
+                                ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).IsAlive(new GenericMessages.IsAliveRequest
+                                {
+                                    SenderIP = machineIP
+                                }, deadline: DateTime.UtcNow.AddSeconds(8)).Result
+                            );
+                        });
                     }
                     catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded) //if a cluster node doesn't respond in time, then consider an acceptance
                     {
@@ -322,11 +400,11 @@ namespace DayRateService
 
                 //send IsAlive to all other nodes
                 var offlineNodes = RunTasksAndAggregate(otherClusterNodes, taskFactory).Result
-                            .Where(kvp => kvp.Value == false)
-                            .Select(kvp => kvp.Key)
-                            .ToList();
+                                    .Where(kvp => kvp.Value == false)
+                                    .Select(kvp => kvp.Key)
+                                    .ToList();
 
-                log.Debug($"Detected offlineNodes: {string.Join(",", offlineNodes)}");
+                log.Debug($"Detected offlineNodes [can be caused by timeout]: {string.Join(",", offlineNodes)}");
             }
             catch (Exception ex)
             {
@@ -340,16 +418,43 @@ namespace DayRateService
             {
                 lock (currentClusterCoordinatorLock)
                 {
-                    if (currentClusterCoordinatorIp != null) //should be modified, consider late coordinator response after election won
+                    if (isCoordinator) //conflict -coordinator shouldn't receive this message [ask cluster nodes who's the coordinator]
                     {
-                        //in case of received CaptureCoordinator, which means that this node isn't a coordinator anymore
-                        clusterNodesTimer.Stop();
+                        Func<string, Task<KeyValuePair<string, string>>> taskFactory = async (otherClusterNode) =>
+                        {
+                            return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                            {
+                                var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                                return KeyValuePair.Create(
+                                    otherClusterNode,
+                                    ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).GetCoordinatorIp(new GenericMessages.GetCoordinatorIpRequest
+                                    {
+                                       
+                                    }).CoordinatorIp);
+                            }).Result;
+                        };
 
+                        var majorCoordinator = RunTasksAndAggregate(otherClusterNodes, taskFactory).Result
+                                                .Where(kvp => !string.IsNullOrEmpty(kvp.Value))
+                                                .Select(kvp => kvp.Value).GroupBy(v => v)
+                                                .OrderByDescending(grp => grp.Count())
+                                                .FirstOrDefault()?.Key ?? "";
+
+                        //in case of received CaptureCoordinator, which means that this node isn't a coordinator anymore
+                        if (majorCoordinator != machineIP)
+                        {
+                            currentClusterCoordinatorIp = majorCoordinator;
+                            clusterNodesTimer.Stop();
+                            InitCoordinatorInactivityTimer(CaptureInactiveCoordinator);
+                        }
+                    }
+                    else if (currentClusterCoordinatorIp != null) //in case of an existing coordinator
+                    {
                         currentClusterCoordinatorIp = coordinatorIp;
                         coordinatorTraceTimer.Stop();
                         coordinatorTraceTimer.Start();
                     }
-                    else //first time to coordinator inactivity initialize timer
+                    else //first time to coordinator inactivity, so initialize its timer
                     {
                         InitCoordinatorInactivityTimer(CaptureInactiveCoordinator);
                     }
@@ -378,29 +483,81 @@ namespace DayRateService
             }
         }
 
-        public override bool AddClusterNode(string clusterNodeuri)
+        public override bool AddClusterNode(string clusterNodeUri)
         {
+            bool result = false;
+
             try
             {
-                log.Info($"Invoked AddClusterNode clusterNodeuri: {clusterNodeuri}");
+                log.Info($"Invoked AddClusterNode clusterNodeuri: {clusterNodeUri}");
 
-                //to be implemented
+                if (!clusterNodeUri.Contains(machineIP))
+                {
+                    otherClusterNodes.Add(clusterNodeUri);
+
+                    currentLoadBalancer.Update(otherClusterNodes);
+
+                    if (isCoordinator) 
+                    {
+                        Func<string, Task<KeyValuePair<string, bool>>> taskFactory = async (otherClusterNode) =>
+                        {
+                            return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                            {
+                                var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                                return KeyValuePair.Create(
+                                    otherClusterNode,
+                                    ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).AddClusterNode(new GenericMessages.AddOrRemoveClusterNodeRequest()
+                                    {
+                                        ClusterNodeUri = clusterNodeUri
+                                    }).Awk);
+                            }).Result;
+                        };
+
+                        _ = RunTasksAndAggregate(otherClusterNodes, taskFactory);
+                    }
+
+                    result = true;
+                }
             }
             catch (Exception ex)
             {
                 log.Error(ex, "In CaptureCoordinator()!");
             }
 
-            return false;
+            return result;
         }
 
-        public override bool RemoveClusterNode(string clusterNodeuri)
+        public override bool RemoveClusterNode(string clusterNodeUri)
         {
+            bool result = false;
             try
             {
-                log.Info($"Invoked CaptureInactiveCoordinator clusterNodeuri: {clusterNodeuri}");
+                log.Info($"Invoked CaptureInactiveCoordinator clusterNodeuri: {clusterNodeUri}");
 
-                //to be implemented
+                otherClusterNodes.Remove(clusterNodeUri);
+
+                currentLoadBalancer.Update(otherClusterNodes);
+
+                if (!clusterNodeUri.Contains(machineIP))
+                {
+                    Func<string, Task<KeyValuePair<string, bool>>> taskFactory = async (otherClusterNode) =>
+                    {
+                        return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                        {
+                            var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                            return KeyValuePair.Create(
+                                otherClusterNode,
+                                ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).RemoveClusterNode(new GenericMessages.AddOrRemoveClusterNodeRequest()
+                                {
+                                    ClusterNodeUri = clusterNodeUri
+                                }).Awk);
+                        }).Result;
+                    };
+
+                    _ = RunTasksAndAggregate(otherClusterNodes, taskFactory);
+                }
+
+                result = true;
             }
             catch (Exception ex)
             {

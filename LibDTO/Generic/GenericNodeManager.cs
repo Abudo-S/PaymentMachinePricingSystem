@@ -9,12 +9,18 @@ using System.Threading.Tasks;
 using LibHelpers;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Timers;
+using Polly;
+using StackExchange.Redis;
+using MongoDB.Driver;
 
 namespace LibDTO.Generic
 {
     public abstract class GenericNodeManager
     {
         protected static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
+        protected AsyncPolicy grpcCircuitRetryPolicy;
+        protected AsyncPolicy redisCircuitRetryPolicy;
+        protected AsyncPolicy mongoCircuitRetryPolicy;
 
         protected bool isCoordinator;
 
@@ -46,10 +52,10 @@ namespace LibDTO.Generic
         /// </summary>
         protected List<string> otherClusterNodes;
 
-        /// <summary>
-        /// nodes present in otherClusterNodes that have heigher id
-        /// </summary>
-        protected List<string> heigherClusterNodes;
+        ///// <summary>
+        ///// nodes present in otherClusterNodes that have heigher id
+        ///// </summary>
+        //protected List<string> heigherClusterNodes;
 
         protected object dbService;
 
@@ -93,13 +99,15 @@ namespace LibDTO.Generic
             {
                 this.machineIP = Dns.GetHostByName(Dns.GetHostName()).AddressList.First(address => address.AddressFamily == AddressFamily.InterNetwork).ToString();
 
-                log.Info($"Invoked Init, machineIp: {machineIP}");
+                log.Info($"Invoked Init, machineIp: {machineIP}, nodeId: {machineIP.GetHashCode()}");
+
+                InitPollyCircuitRetryPolicies();
 
                 this.currentLoadBalancer = currentLoadBalancer;
                 this.cache = cache;
                 this.dbService = dbService;
                 otherClusterNodes = clusterNodes.Where(clusterNode => !clusterNode.Contains(machineIP)).ToList();
-                heigherClusterNodes = otherClusterNodes.Where(clusterNode => clusterNode.Replace("http://", "").GetHashCode() > machineIP.GetHashCode()).ToList();
+                //heigherClusterNodes = otherClusterNodes.Where(clusterNode => clusterNode.Replace("http://", "").GetHashCode() > machineIP.GetHashCode()).ToList();
                 this.middlewareEndpoint = middlewareEndpoint;
                 nThreads = maxThreads;
                 this.requestExpiryInMilliseconds = requestExpiryInMilliseconds;
@@ -107,12 +115,50 @@ namespace LibDTO.Generic
                 //init cluster nodes clients
                 GrpcClientInitializer.Instance.InitializeClusterGrpcClients<T>(otherClusterNodes);
 
+                ThreadPool.SetMaxThreads(nThreads, nThreads);
+
                 QueuePolling();
             }
             catch (Exception ex)
             {
                 log.Error(ex, "In Init()!");
             }
+        }
+
+        private void InitPollyCircuitRetryPolicies()
+        {
+            //grpc policy
+            var retryPolicy = Policy.Handle<RpcException>(ex =>
+                new StatusCode[] { StatusCode.Cancelled, StatusCode.Unavailable, StatusCode.DataLoss }.Contains(ex.StatusCode))
+                .WaitAndRetryAsync(3,
+                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                (ex, time) => {
+                    log.Warn(ex, $"In GrpcPollyRetryPolicy [{time}]");
+                });
+            var circuitBreakerPolicy = Policy.Handle<RpcException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+            grpcCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
+
+            //redis policy
+            retryPolicy = Policy.Handle<RedisException>()
+            .WaitAndRetryAsync(3,
+            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            (ex, time) => {
+                log.Warn(ex, $"In RedisPollyRetryPolicy [{time}]");
+            });
+            circuitBreakerPolicy = Policy.Handle<RpcException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+            redisCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
+
+            //mongo policy
+            retryPolicy = Policy.Handle<MongoException>(ex => 
+            ex is MongoExecutionTimeoutException || ex is MongoClientException || ex is MongoServerException ||
+            ex is MongoConnectionException || ex is MongoWaitQueueFullException)
+                .WaitAndRetryAsync(3,
+                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                (ex, time) => {
+                    log.Warn(ex, $"In GrpcPollyRetryPolicy [{time}]");
+                });
+            circuitBreakerPolicy = Policy.Handle<RpcException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+            mongoCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
         }
 
         /// <summary>
@@ -129,6 +175,7 @@ namespace LibDTO.Generic
                         requestId,
                         KeyValuePair.Create(DateTime.UtcNow, requestExpiry))
                     );
+
                 return true;
             }
             catch (Exception ex)
@@ -163,7 +210,7 @@ namespace LibDTO.Generic
 
         public void InitPingingTimer(ElapsedEventHandler onElapsedTimer)
         {
-            clusterNodesTimer = new System.Timers.Timer(8000); //8 sec 
+            clusterNodesTimer = new System.Timers.Timer(10000); //10 sec 
             clusterNodesTimer.Elapsed += onElapsedTimer;
             clusterNodesTimer.AutoReset = true;
 
@@ -176,12 +223,10 @@ namespace LibDTO.Generic
 
         public string GetCoordinatorIp()
         {
-            if (!string.IsNullOrEmpty(currentClusterCoordinatorIp))
-                return currentClusterCoordinatorIp;
-            else if (isCoordinator)
+            if (isCoordinator)
                 return this.machineIP;
             else
-                return "Undefined";
+                return currentClusterCoordinatorIp;
         }
     }
 }

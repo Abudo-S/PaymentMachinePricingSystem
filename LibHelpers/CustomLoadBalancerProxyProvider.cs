@@ -21,6 +21,9 @@ namespace LibHelpers
                 .AddJsonFile("appsettings.json", optional: false, reloadOnChange: false)
                 .Build();
 
+        private string clusterId;
+        private string matchingPath;
+
         private CustomMemoryConfig _config;
 
         public CustomLoadBalancerProxyProvider(List<string> nodesAddrs, bool useHTTP2 = false)
@@ -28,11 +31,18 @@ namespace LibHelpers
             log.Info("Invoked CustomLoadBalancerProxyProvider()");
 
             //get config params
-            var clusterId = (string)(configuration.GetValue(typeof(string), "ClusterId") ?? "DayRateCluster");
-            var matchingPath = (string)(configuration.GetValue(typeof(string), "MatchingPath") ?? "{**catch-all}");
+            clusterId = (string)(configuration.GetValue(typeof(string), "ClusterId") ?? "DayRateCluster");
+            matchingPath = (string)(configuration.GetValue(typeof(string), "MatchingPath") ?? "{**catch-all}");
             
             log.Debug($"Initialized CustomLoadBalancerProxyProvider with clusterId: {clusterId}, matchingPath: {matchingPath}, nodes: {string.Join(", ", nodesAddrs)}");
 
+            var kvpClusterConfig = PrepareClusterConfigRoutes(nodesAddrs, useHTTP2);
+
+            _config = new CustomMemoryConfig(kvpClusterConfig.Key, kvpClusterConfig.Value);
+        }
+
+        public KeyValuePair<IReadOnlyList<RouteConfig>, IReadOnlyList<ClusterConfig>> PrepareClusterConfigRoutes(List<string> nodesAddrs, bool useHTTP2 = false)
+        {
             // Load a basic configuration
             // Should be based on your application needs.
             var routeConfig = new RouteConfig
@@ -84,14 +94,14 @@ namespace LibHelpers
                 }
             };
 
-            var metadata = new Dictionary<string, string> { 
-                { TransportFailureRateHealthPolicyOptions.FailureRateLimitMetadataName, "0.5" } 
+            var metadata = new Dictionary<string, string> {
+                { TransportFailureRateHealthPolicyOptions.FailureRateLimitMetadataName, "0.5" }
             };
 
             //HTTP/2 for grpc
             var httpRequestConfigs = new ForwarderRequestConfig()
             {
-                Version = new Version(useHTTP2?"2.0" : "1.1"), //should be 2.0 in case of https listening
+                Version = new Version(useHTTP2 ? "2.0" : "1.1"), //should be 2.0 in case of https listening
                 VersionPolicy = HttpVersionPolicy.RequestVersionExact
             };
 
@@ -108,7 +118,7 @@ namespace LibHelpers
                 }
             };
 
-            _config = new CustomMemoryConfig(routeConfigs, clusterConfigs);
+            return KeyValuePair.Create((IReadOnlyList<RouteConfig>)routeConfigs, (IReadOnlyList<ClusterConfig>)clusterConfigs);
         }
 
         public IProxyConfig GetConfig() => _config;
@@ -116,10 +126,13 @@ namespace LibHelpers
         /// <summary>
         /// Adjust proxy configuration Dynamically (ex. node joins or exists).
         /// </summary>
-        public void Update(IReadOnlyList<RouteConfig> routes, IReadOnlyList<ClusterConfig> clusters)
+        public void Update(List<string> nodesAddrs)
         {
             var oldConfig = _config;
-            _config = new CustomMemoryConfig(routes, clusters);
+
+            var kvpClusterConfig = PrepareClusterConfigRoutes(nodesAddrs);
+
+            _config = new CustomMemoryConfig(kvpClusterConfig.Key, kvpClusterConfig.Value);
             oldConfig.SignalChange();
         }
 

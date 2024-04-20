@@ -11,6 +11,7 @@ using AutoMapper;
 
 namespace DayRateService.Services
 {
+    [ActionInterceptor]
     public class DayRateService : DayRate.DayRateBase
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
@@ -32,7 +33,6 @@ namespace DayRateService.Services
             return false;
         }
 
-        [ActionInterceptor]
         public override Task<AsyncResult> UpsertDayRate(UpsertDayRateRequest request, ServerCallContext context)
         {
             try
@@ -40,13 +40,12 @@ namespace DayRateService.Services
                 log.Info($"Invoked UpsertDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.DayRate.Id}");
 
                 //async without waiting
-                DayRateManager.Instance.UpsertDayRate(request.RequestCamp.RequestId, mapper.Map<LibDTO.DayRate>(request.DayRate), request.RequestCamp.RequiredDelay);
-
-                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
+                _ = DayRateManager.Instance.UpsertDayRate(request.RequestCamp.RequestId, mapper.Map<LibDTO.DayRate>(request.DayRate), request.RequestCamp.RequiredDelay);
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<UpsertDayRateRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) &&
+                          cache.SetRecordAsync<UpsertDayRateRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -67,13 +66,12 @@ namespace DayRateService.Services
                 log.Info($"Invoked GetDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
                 //async without waiting
-                DayRateManager.Instance.GetDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
-
-                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
+                _ = DayRateManager.Instance.GetDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<GetDayRateRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) &&
+                          cache.SetRecordAsync<GetDayRateRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -94,13 +92,12 @@ namespace DayRateService.Services
                 log.Info($"Invoked GetDayRates with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
                 //async without waiting
-                DayRateManager.Instance.GetDayRates(request.RequestCamp.RequestId, request.RequestCamp.RequiredDelay);
-
-                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
+                _ = DayRateManager.Instance.GetDayRates(request.RequestCamp.RequestId, request.RequestCamp.RequiredDelay);
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<GetDayRatesRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) && 
+                          cache.SetRecordAsync<GetDayRatesRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -121,13 +118,12 @@ namespace DayRateService.Services
                 log.Info($"Invoked DeleteDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.Id}");
 
                 //async without waiting
-                DayRateManager.Instance.DeleteDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
-
-                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
+                _ = DayRateManager.Instance.DeleteDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<DeleteDayRateRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) && 
+                          cache.SetRecordAsync<DeleteDayRateRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -148,16 +144,15 @@ namespace DayRateService.Services
                 log.Info($"Invoked CalculateDayFee with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
                 
                 //async without waiting
-                DayRateManager.Instance.CalculateDayFee(request.RequestCamp.RequestId,
-                    TimeSpan.FromSeconds(request.Start),
-                    TimeSpan.FromSeconds(request.End),
-                    request.RequestCamp.RequiredDelay);
-
-                DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId);
+                _ = DayRateManager.Instance.CalculateDayFee(request.RequestCamp.RequestId,
+                        TimeSpan.FromSeconds(request.Start),
+                        TimeSpan.FromSeconds(request.End),
+                        request.RequestCamp.RequiredDelay);
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = cache.SetRecordAsync<CalculateDayFeeRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) && 
+                          cache.SetRecordAsync<CalculateDayFeeRequest>(request.RequestCamp.RequestId, request).Result
                 });
             }
             catch (Exception ex)
