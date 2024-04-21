@@ -94,7 +94,7 @@ namespace DayRateService
                     }).Result;
                 };
 
-                _ = RunTasksAndAggregate(otherClusterNodes, taskFactory);
+                Task.Run(() => RunTasksAndAggregate(otherClusterNodes, taskFactory));
 
                 return true;
             }
@@ -406,58 +406,6 @@ namespace DayRateService
             }
         }
 
-        public override bool StartCoordinatorActivity()
-        {
-            bool result = false;
-
-            try
-            {
-                log.Info("Invoked StartCoordinatorActivity");
-
-                lock (currentClusterCoordinatorLock)
-                {
-                    isCoordinator = true;
-                    currentClusterCoordinatorIp = null;
-
-                    //stop coordinator tracer timer
-                    coordinatorTraceTimer.Stop();
-                }
-
-                clusterNodesTimer.Start();
-            }
-            catch (Exception ex)
-            {
-                log.Error(ex, "In StartCoordinatorActivity()!");
-            }
-
-            return result;
-        }
-
-        public override bool StopCoordinatorActivity(string currentCoordinator)
-        {
-            bool result = false;
-
-            try
-            {
-                log.Info("Invoked StopCoordinatorActivity");
-
-                lock (currentClusterCoordinatorLock)
-                {
-                    isCoordinator = false;
-                    currentClusterCoordinatorIp = currentCoordinator;
-
-                    //init coordinator tracer timer
-                    
-                }
-            }
-            catch (Exception ex)
-            {
-                log.Error(ex, "In StopCoordinatorActivity()!");
-            }
-
-            return result;
-        }
-
         public override void PingClusterNodes(Object source, ElapsedEventArgs e)
         {
             try
@@ -530,10 +478,7 @@ namespace DayRateService
                         //in case of received CaptureCoordinator, which means that this node isn't a coordinator anymore
                         if (majorCoordinator != machineIP)
                         {
-                            isCoordinator = false;
-                            currentClusterCoordinatorIp = majorCoordinator;
-                            clusterNodesTimer.Stop();
-                            coordinatorTraceTimer.Start();
+                            StopCoordinatorActivity(coordinatorIp);
                         }
                     }
                     else if (currentClusterCoordinatorIp != null) //in case of an existing coordinator
@@ -601,7 +546,7 @@ namespace DayRateService
                             }).Result;
                         };
 
-                        _ = RunTasksAndAggregate(otherClusterNodes, taskFactory);
+                        Task.Run(() => RunTasksAndAggregate(otherClusterNodes, taskFactory));
                     }
 
                     result = true;
@@ -622,27 +567,30 @@ namespace DayRateService
             {
                 log.Info($"Invoked CaptureInactiveCoordinator clusterNodeuri: {clusterNodeUri}");
 
-                otherClusterNodes.Remove(clusterNodeUri);
-
-                currentLoadBalancer.Update(otherClusterNodes);
-
                 if (!clusterNodeUri.Contains(machineIP))
                 {
-                    Func<string, Task<KeyValuePair<string, bool>>> taskFactory = async (otherClusterNode) =>
-                    {
-                        return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
-                        {
-                            var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
-                            return KeyValuePair.Create(
-                                otherClusterNode,
-                                ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).RemoveClusterNode(new GenericMessages.AddOrRemoveClusterNodeRequest()
-                                {
-                                    ClusterNodeUri = clusterNodeUri
-                                }).Awk);
-                        }).Result;
-                    };
+                    otherClusterNodes.Remove(clusterNodeUri);
 
-                    _ = RunTasksAndAggregate(otherClusterNodes, taskFactory);
+                    currentLoadBalancer.Update(otherClusterNodes);
+
+                    if (isCoordinator)
+                    {
+                        Func<string, Task<KeyValuePair<string, bool>>> taskFactory = async (otherClusterNode) =>
+                        {
+                            return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                            {
+                                var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                                return KeyValuePair.Create(
+                                    otherClusterNode,
+                                    ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).RemoveClusterNode(new GenericMessages.AddOrRemoveClusterNodeRequest()
+                                    {
+                                        ClusterNodeUri = clusterNodeUri
+                                    }).Awk);
+                            }).Result;
+                        };
+
+                        Task.Run(() => RunTasksAndAggregate(otherClusterNodes, taskFactory));
+                    }
                 }
 
                 result = true;

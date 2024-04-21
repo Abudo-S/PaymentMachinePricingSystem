@@ -25,12 +25,13 @@ namespace DayRateService.DbServices
             await dayRateCollection.Find(_ => true).ToListAsync();
 
         public async Task<DayRate?> GetAsync(string id) =>
-            await dayRateCollection.Find(x => x.Id == id).FirstOrDefaultAsync();
+            await dayRateCollection.Find(x => x.Id == IntTo24Hex(Int32.Parse(id))).FirstOrDefaultAsync();
 
         public async Task<bool> CreateAsync(DayRate dayRate) 
         {
             try
             {
+                dayRate.Id = IntTo24Hex(Int32.Parse(dayRate.Id));
                 await dayRateCollection.InsertOneAsync(dayRate);
                 return true;
             }
@@ -40,9 +41,15 @@ namespace DayRateService.DbServices
             
 
         public async Task<bool> UpdateAsync(string id, DayRate dayRate) =>
-            (await dayRateCollection.ReplaceOneAsync(x => x.Id == id, dayRate)).IsAcknowledged;
+            (await dayRateCollection.ReplaceOneAsync(x => x.Id == IntTo24Hex(Int32.Parse(id)), dayRate)).IsAcknowledged;
 
         public async Task<bool> RemoveAsync(string id) =>
-            (await dayRateCollection.DeleteOneAsync(x => x.Id == id)).IsAcknowledged;
+            (await dayRateCollection.DeleteOneAsync(x => x.Id == IntTo24Hex(Int32.Parse(id)))).IsAcknowledged;
+
+
+        public static string IntTo24Hex(int id)
+        {
+            return id.ToString("x").PadLeft(24, '0').ToUpper();
+        }
     }
 }

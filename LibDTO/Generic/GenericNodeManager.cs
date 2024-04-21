@@ -95,8 +95,9 @@ namespace LibDTO.Generic
         /// <param name="requestExpiryInMilliseconds"></param>
         public void Init<T>(CustomLoadBalancerProxyProvider currentLoadBalancer,
             object dbService, 
+            string machineIP,
             IDistributedCache cache,
-            List<string> clusterNodes,
+            List<string> otherClusterNodes,
             IMapper mapper,
             string middlewareEndpoint,
             int maxThreads,
@@ -104,29 +105,31 @@ namespace LibDTO.Generic
         {
             try
             {
-                this.machineIP = Dns.GetHostByName(Dns.GetHostName()).AddressList.First(address => address.AddressFamily == AddressFamily.InterNetwork).ToString();
-
-                log.Info($"Invoked Init, machineIp: {machineIP}, nodeId: {machineIP.GetHashCode()}");
+                log.Info($"Invoked Init, machineIp: {machineIP}, nodeId: {machineIP.GetHashCode()}, maxThreads: {maxThreads}, middlewareEndpoint: {middlewareEndpoint}");
 
                 InitPollyCircuitRetryPolicies();
 
                 this.currentLoadBalancer = currentLoadBalancer;
                 this.mapper = mapper;
+                this.machineIP = machineIP;
                 this.cache = cache;
                 this.dbService = dbService;
-                otherClusterNodes = clusterNodes.Where(clusterNode => !clusterNode.Contains(machineIP)).ToList();
+                this.otherClusterNodes = otherClusterNodes;
                 //heigherClusterNodes = otherClusterNodes.Where(clusterNode => clusterNode.Replace("http://", "").GetHashCode() > machineIP.GetHashCode()).ToList();
                 this.middlewareEndpoint = middlewareEndpoint;
                 nThreads = maxThreads;
                 this.requestExpiryInMilliseconds = requestExpiryInMilliseconds;
 
-                //init cluster nodes clients
-                GrpcClientInitializer.Instance.InitializeClusterGrpcClients<T>(otherClusterNodes);
-
                 ThreadPool.SetMaxThreads(nThreads, nThreads);
 
-                //ask all nodes for unique pending notified requests
-                AskForPendingRequests();
+                Task.Run(() =>
+                {
+                    //init cluster nodes clients
+                    GrpcClientInitializer.Instance.InitializeClusterGrpcClients<T>(otherClusterNodes);
+
+                    //ask all nodes for unique pending notified requests
+                    AskForPendingRequests(); 
+                });
 
                 //prepare timers
                 InitCoordinatorInactivityTimer(CaptureInactiveCoordinator);
@@ -144,9 +147,10 @@ namespace LibDTO.Generic
             var retryPolicy = Policy.Handle<RpcException>(ex =>
                 new StatusCode[] { StatusCode.Cancelled, StatusCode.Unavailable, StatusCode.DataLoss }.Contains(ex.StatusCode))
                 .WaitAndRetryAsync(3,
-                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
                 (ex, time) => {
-                    log.Warn(ex, $"In GrpcPollyRetryPolicy [{time}]");
+                    //log.Warn(ex. $"In GrpcPollyRetryPolicy [{time}]");
+                    log.Warn($"In GrpcPollyRetryPolicy [{time}], msg: {ex.Message}");
                 });
             var circuitBreakerPolicy = Policy.Handle<RpcException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
             grpcCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
@@ -154,9 +158,10 @@ namespace LibDTO.Generic
             //redis policy
             retryPolicy = Policy.Handle<RedisException>()
             .WaitAndRetryAsync(3,
-            retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+            retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
             (ex, time) => {
-                log.Warn(ex, $"In RedisPollyRetryPolicy [{time}]");
+                //log.Warn(ex, $"In RedisPollyRetryPolicy [{time}]");
+                log.Warn($"In RediscPollyRetryPolicy [{time}], msg: {ex.Message}");
             });
             circuitBreakerPolicy = Policy.Handle<RpcException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
             redisCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
@@ -166,9 +171,10 @@ namespace LibDTO.Generic
             ex is MongoExecutionTimeoutException || ex is MongoClientException || ex is MongoServerException ||
             ex is MongoConnectionException || ex is MongoWaitQueueFullException)
                 .WaitAndRetryAsync(3,
-                retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
                 (ex, time) => {
-                    log.Warn(ex, $"In GrpcPollyRetryPolicy [{time}]");
+                    //log.Warn(ex, $"In MongoPollyRetryPolicy [{time}]");
+                    log.Warn($"In MongoPollyRetryPolicy [{time}], msg: {ex.Message}");
                 });
             circuitBreakerPolicy = Policy.Handle<RpcException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
             mongoCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
@@ -201,6 +207,9 @@ namespace LibDTO.Generic
         /// </summary>
         public abstract Task TraceNotifiedRequest(object? state, string requestId, int requestExpiry);
 
+        /// <summary>
+        /// It's recommanded to run this method into a seperated Task, because it interfers with several cluster nodes
+        /// </summary>
         public abstract void AskForPendingRequests();
 
         public async Task<List<TResult>> RunTasksAndAggregate<TInput, TResult>(IEnumerable<TInput> inputs, Func<TInput, Task<TResult>> taskFactory)
@@ -227,7 +236,16 @@ namespace LibDTO.Generic
                 var result = Monitor.TryEnter(bullyElectionLock) && anotherNodeId < machineIP.GetHashCode();
 
                 if (result)
-                    _ = CanBeCoordinator_Bully();
+                {
+                    Task.Run(() =>
+                    {
+                        coordinatorTraceTimer.Stop();
+                        _ = CanBeCoordinator_Bully();
+
+                        if (!isCoordinator)
+                            coordinatorTraceTimer.Start();
+                    });                 
+                }
 
                 return !result;
             }
@@ -240,7 +258,8 @@ namespace LibDTO.Generic
         }
 
         /// <summary>
-        /// checks if no other heigher nodes are active; if so, then declare this node as coordinator
+        /// checks if no other heigher nodes are active; if so, then declare this node as coordinator.
+        /// It's recommanded to run this method into a seperated Task, because it interfers with several cluster nodes
         /// </summary>
         public abstract Task CanBeCoordinator_Bully();
         #endregion
@@ -264,12 +283,18 @@ namespace LibDTO.Generic
             //clusterNodesTimer.Start();
         }
 
+        /// <summary>
+        /// asyncronous timer
+        /// </summary>
+        /// <param name="source"></param>
+        /// <param name="e"></param>
         public abstract void PingClusterNodes(Object source, ElapsedEventArgs e);
 
         /// <summary>
         /// received from coordinator node.
         /// if a coordinator received this message, it means that a new coordinato might be elected per a detected inactivity; 
-        /// in such a case, current node will request all nodes for majorCoordinator determination
+        /// in such a case, current node will request all nodes for majorCoordinator determination.
+        /// it's recommanded to run this method into a seperated Task, because it might interfer with several cluster nodes
         /// </summary>
         /// <param name="coordinatorIp"></param>
         /// <returns></returns>
@@ -279,7 +304,64 @@ namespace LibDTO.Generic
         #endregion
 
         #region Coordination
+        public bool StartCoordinatorActivity()
+        {
+            try
+            {
+                log.Info("Invoked StartCoordinatorActivity");
 
+                lock (currentClusterCoordinatorLock)
+                {
+                    isCoordinator = true;
+                    currentClusterCoordinatorIp = null;
+
+                    //stop coordinator tracer timer
+                    coordinatorTraceTimer.Stop();
+                    clusterNodesTimer.Start();
+                }
+
+                return true;
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, "In StartCoordinatorActivity()!");
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// in case of new coordinator elected and this node is considered as a time-out coordinator
+        /// </summary>
+        /// <param name="currentCoordinator"></param>
+        /// <returns></returns>
+        public bool StopCoordinatorActivity(string currentCoordinator)
+        {
+            bool result = false;
+
+            try
+            {
+                log.Info("Invoked StopCoordinatorActivity");
+
+                lock (currentClusterCoordinatorLock)
+                {
+                    isCoordinator = false;
+                    currentClusterCoordinatorIp = currentCoordinator;
+
+                    //stop cluster node pinging
+                    clusterNodesTimer.Stop();
+
+                    //start coordinator tracer timer
+                    coordinatorTraceTimer.Start();
+                }
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, "In StopCoordinatorActivity()!");
+            }
+
+            return result;
+        }
         /// <summary>
         /// the idea is that if a cluster node wants to handle a request and the coordinator notices that the current request handling is expired,
         /// then it responds true and update its notifiedHandledRequests
@@ -323,15 +405,6 @@ namespace LibDTO.Generic
         /// </summary>
         /// <returns></returns>
         public abstract bool NotifyHandledRequest(string requestId);
-
-        public abstract bool StartCoordinatorActivity();
-
-        /// <summary>
-        /// in case of new coordinator elected and this node is considered as a time-out coordinator
-        /// </summary>
-        /// <param name="currentCoordinator"></param>
-        /// <returns></returns>
-        public abstract bool StopCoordinatorActivity(string currentCoordinator);
 
         public abstract bool AddClusterNode(string clusterNodeUri);
 

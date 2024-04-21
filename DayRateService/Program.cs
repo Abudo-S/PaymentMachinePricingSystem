@@ -16,6 +16,8 @@ using DayRateService.DbServices;
 using AutoMapper;
 using LibDTO.Generic;
 using Microsoft.Extensions.Caching.Distributed;
+using System.Net.Sockets;
+using System.Net;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -81,12 +83,15 @@ builder.Services.AddSingleton(mapper);
 //Dependency injection
 builder.Services.AddScoped<DayRateServices.DayRateService>();
 
+var machineIP = Dns.GetHostByName(Dns.GetHostName()).AddressList.First(address => address.AddressFamily == AddressFamily.InterNetwork).ToString();
 List<string> clusterNodes = new List<string>();
 builder.Configuration.GetSection("ClusterNodes").Bind(clusterNodes);
-var customLBPP = new CustomLoadBalancerProxyProvider(clusterNodes);
+var customLBPP = new CustomLoadBalancerProxyProvider(clusterNodes.Where(clusterNode => !clusterNode.Contains(machineIP)).ToList());
 builder.Services.AddSingleton<IProxyConfigProvider>(customLBPP).AddReverseProxy();
+
 DayRateManager.Instance.Init<MicroservicesProtos.DayRate.DayRateClient>(customLBPP, 
     (DayRateDbService)builder.Services.BuildServiceProvider().GetRequiredService(typeof(DayRateDbService)),
+    machineIP,
     (IDistributedCache)builder.Services.BuildServiceProvider().GetRequiredService(typeof(IDistributedCache)),
     clusterNodes,
     mapper,

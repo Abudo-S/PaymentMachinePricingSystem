@@ -31,7 +31,7 @@ namespace DayRateService.Services
                 log.Info($"Invoked UpsertDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.DayRate.Id}");
 
                 //async without waiting
-                _ = DayRateManager.Instance.UpsertDayRate(request.RequestCamp.RequestId, mapper.Map<LibDTO.DayRate>(request.DayRate), request.RequestCamp.RequiredDelay);
+                Task.Run(() => DayRateManager.Instance.UpsertDayRate(request.RequestCamp.RequestId, mapper.Map<LibDTO.DayRate>(request.DayRate), request.RequestCamp.RequiredDelay));
 
                 //essential for request handling through reflection
                 string requestId = nameof(UpsertDayRateRequest) + "@" + request.RequestCamp.RequestId;
@@ -60,7 +60,7 @@ namespace DayRateService.Services
                 log.Info($"Invoked GetDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
                 //async without waiting
-                _ = DayRateManager.Instance.GetDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
+                Task.Run(() => DayRateManager.Instance.GetDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay));
                 
                 //essential for request handling through reflection
                 string requestId = nameof(GetDayRateRequest) + "@" + request.RequestCamp.RequestId;
@@ -89,7 +89,7 @@ namespace DayRateService.Services
                 log.Info($"Invoked GetDayRates with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
                 //async without waiting
-                _ = DayRateManager.Instance.GetDayRates(request.RequestCamp.RequestId, request.RequestCamp.RequiredDelay);
+                Task.Run(() => DayRateManager.Instance.GetDayRates(request.RequestCamp.RequestId, request.RequestCamp.RequiredDelay));
 
                 //essential for request handling through reflection
                 string requestId = nameof(GetDayRatesRequest) + "@" + request.RequestCamp.RequestId;
@@ -118,7 +118,7 @@ namespace DayRateService.Services
                 log.Info($"Invoked DeleteDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.Id}");
 
                 //async without waiting
-                _ = DayRateManager.Instance.DeleteDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
+                Task.Run(() => DayRateManager.Instance.DeleteDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay));
 
                 //essential for request handling through reflection
                 string requestId = nameof(DeleteDayRateRequest) + "@" + request.RequestCamp.RequestId;
@@ -145,12 +145,13 @@ namespace DayRateService.Services
             try
             {
                 log.Info($"Invoked CalculateDayFee with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
-                
+
                 //async without waiting
-                _ = DayRateManager.Instance.CalculateDayFee(request.RequestCamp.RequestId,
-                        TimeSpan.FromSeconds(request.Start),
-                        TimeSpan.FromSeconds(request.End),
-                        request.RequestCamp.RequiredDelay);
+                Task.Run(() => DayRateManager.Instance.CalculateDayFee(request.RequestCamp.RequestId,
+                                TimeSpan.FromSeconds(request.Start),
+                                TimeSpan.FromSeconds(request.End),
+                                request.RequestCamp.RequiredDelay)
+                );
 
                 //essential for request handling through reflection
                 string requestId = nameof(CalculateDayFeeRequest) + "@" + request.RequestCamp.RequestId;
@@ -317,13 +318,14 @@ namespace DayRateService.Services
                 CoordinatorIp = "ERROR"
             });
         }
+
         public override Task<SyncResult> IsAlive(IsAliveRequest request, ServerCallContext context)
         {
             try
             {
                 log.Info($"Invoked IsAlive");
 
-                DayRateManager.Instance.CaptureCoordinator(request.SenderIP);
+                Task.Run(() => DayRateManager.Instance.CaptureCoordinator(request.SenderIP));
 
                 return Task.FromResult(new SyncResult
                 {
