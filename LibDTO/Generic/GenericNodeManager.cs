@@ -12,6 +12,9 @@ using System.Timers;
 using Polly;
 using StackExchange.Redis;
 using MongoDB.Driver;
+using System.Runtime.CompilerServices;
+using MongoDB.Driver.Linq;
+using AutoMapper;
 
 namespace LibDTO.Generic
 {
@@ -40,8 +43,6 @@ namespace LibDTO.Generic
         protected object nThreadsLock;
         protected object bullyElectionLock;
 
-        protected int requestExpiryInMilliseconds;
-
         /// <summary>
         /// will be used to create a grpc client in case of cluster node
         /// </summary>
@@ -67,15 +68,20 @@ namespace LibDTO.Generic
         /// used to inform the coordinator about node removing or adding
         /// </summary>
         protected CustomLoadBalancerProxyProvider currentLoadBalancer;
+        protected IMapper mapper;
 
         protected CancellationTokenSource cts;
 
+        protected IDistributedCache cache;
+
+        public int requestExpiryInMilliseconds { get; protected set; }
+
         /// <summary>
         /// all notified request ids from external nodes
+        /// in case of normal cluster node, it'll be traced
+        /// <requestId, <lastCommunicatedExpiry, expiry>>
         /// </summary>
-        protected Queue<KeyValuePair<string, KeyValuePair<DateTime, double>>> notifiedRequestsQueue;
-
-        protected IDistributedCache cache;
+        public Dictionary<string, KeyValuePair<DateTime, int>> notifiedHandledRequests { get; protected set; }
 
         /// <summary>
         /// when the manager of microservice is up it'll request a copy of ids of all pending requests and it will consider
@@ -91,6 +97,7 @@ namespace LibDTO.Generic
             object dbService, 
             IDistributedCache cache,
             List<string> clusterNodes,
+            IMapper mapper,
             string middlewareEndpoint,
             int maxThreads,
             int requestExpiryInMilliseconds) where T : ClientBase
@@ -104,6 +111,7 @@ namespace LibDTO.Generic
                 InitPollyCircuitRetryPolicies();
 
                 this.currentLoadBalancer = currentLoadBalancer;
+                this.mapper = mapper;
                 this.cache = cache;
                 this.dbService = dbService;
                 otherClusterNodes = clusterNodes.Where(clusterNode => !clusterNode.Contains(machineIP)).ToList();
@@ -117,7 +125,12 @@ namespace LibDTO.Generic
 
                 ThreadPool.SetMaxThreads(nThreads, nThreads);
 
-                QueuePolling();
+                //ask all nodes for unique pending notified requests
+                AskForPendingRequests();
+
+                //prepare timers
+                InitCoordinatorInactivityTimer(CaptureInactiveCoordinator);
+                InitPingingTimer(PingClusterNodes);
             }
             catch (Exception ex)
             {
@@ -167,16 +180,13 @@ namespace LibDTO.Generic
         /// <param name="requestId"></param>
         /// <param name="requestExpiry">estimated expiry in seconds, declared by the node that invoked this method</param>
         /// <returns></returns>
-        public bool AppendNotifiedRequest(string requestId, double requestExpiry)
+        public bool AppendNotifiedRequest(string requestId, int requestExpiry)
         {
             try
             {
-                this.notifiedRequestsQueue.Enqueue(KeyValuePair.Create(
-                        requestId,
-                        KeyValuePair.Create(DateTime.UtcNow, requestExpiry))
-                    );
+                this.notifiedHandledRequests.Add(requestId, KeyValuePair.Create(DateTime.UtcNow, requestExpiry));
 
-                return true;
+                return (!isCoordinator)? ThreadPool.QueueUserWorkItem((object? state) => TraceNotifiedRequest(state, requestId, requestExpiry)): true;
             }
             catch (Exception ex)
             {
@@ -187,9 +197,11 @@ namespace LibDTO.Generic
         }
 
         /// <summary>
-        /// uses notifiedRequestsQueue to trace remote handled requests in the same cluster
+        /// Trace remote handled requests in the same cluster - only normal nodes can trace
         /// </summary>
-        public abstract void QueuePolling();
+        public abstract Task TraceNotifiedRequest(object? state, string requestId, int requestExpiry);
+
+        public abstract void AskForPendingRequests();
 
         public async Task<List<TResult>> RunTasksAndAggregate<TInput, TResult>(IEnumerable<TInput> inputs, Func<TInput, Task<TResult>> taskFactory)
         {
@@ -199,13 +211,48 @@ namespace LibDTO.Generic
             return results.ToList();
         }
 
+        #region Election
+
+        /// <summary>
+        /// should be assured that no another election is in progress
+        /// </summary>
+        /// <param name="anotherNodeId"></param>
+        /// <returns></returns>
+        public bool CheckIfNodeIdHigher(int anotherNodeId)
+        {
+            try
+            {
+                log.Info($"Invoked CheckIfNodeIdHigher anotherNodeId: {anotherNodeId}, currentNodeId {machineIP.GetHashCode()}");
+
+                var result = Monitor.TryEnter(bullyElectionLock) && anotherNodeId < machineIP.GetHashCode();
+
+                if (result)
+                    _ = CanBeCoordinator_Bully();
+
+                return !result;
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, "In CheckIfNodeIdHigher()!");
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// checks if no other heigher nodes are active; if so, then declare this node as coordinator
+        /// </summary>
+        public abstract Task CanBeCoordinator_Bully();
+        #endregion
+
+        #region Pinging
         public void InitCoordinatorInactivityTimer(ElapsedEventHandler onElapsedTimer)
         {
             coordinatorTraceTimer = new System.Timers.Timer(90000); //1.5 min 
             coordinatorTraceTimer.Elapsed += onElapsedTimer;
             coordinatorTraceTimer.AutoReset = true;
 
-            coordinatorTraceTimer.Start();
+            //coordinatorTraceTimer.Start();
         }
 
         public void InitPingingTimer(ElapsedEventHandler onElapsedTimer)
@@ -214,12 +261,83 @@ namespace LibDTO.Generic
             clusterNodesTimer.Elapsed += onElapsedTimer;
             clusterNodesTimer.AutoReset = true;
 
-            clusterNodesTimer.Start();
+            //clusterNodesTimer.Start();
         }
 
-        public abstract bool AddClusterNode(string clusterNodeuri);
+        public abstract void PingClusterNodes(Object source, ElapsedEventArgs e);
+
+        /// <summary>
+        /// received from coordinator node.
+        /// if a coordinator received this message, it means that a new coordinato might be elected per a detected inactivity; 
+        /// in such a case, current node will request all nodes for majorCoordinator determination
+        /// </summary>
+        /// <param name="coordinatorIp"></param>
+        /// <returns></returns>
+        public abstract Task CaptureCoordinator(string coordinatorIp);
+
+        public abstract void CaptureInactiveCoordinator(object source, ElapsedEventArgs e);
+        #endregion
+
+        #region Coordination
+
+        /// <summary>
+        /// the idea is that if a cluster node wants to handle a request and the coordinator notices that the current request handling is expired,
+        /// then it responds true and update its notifiedHandledRequests
+        /// </summary>
+        /// <param name="requestId"></param>
+        /// <param name="requestExpiry">new request expiry</param>
+        /// <returns></returns>
+        public bool CanIHandle(string requestId, int requestExpiry)
+        {
+            try
+            {
+                lock(this)
+                {
+                    var notifiedHandledRequest = notifiedHandledRequests.FirstOrDefault(kvp => kvp.Key == requestId);
+
+                    if (notifiedHandledRequest.Equals(default(KeyValuePair<string, KeyValuePair<DateTime, int>>)))
+                    {
+                        throw new KeyNotFoundException("Can't find requestId, unsyncronized coordinator!");
+                    }
+
+                    if (notifiedHandledRequest.Value.Key.AddMilliseconds(notifiedHandledRequest.Value.Value) < DateTime.UtcNow)
+                    {
+                        //update notifiedHandledRequests
+                        notifiedHandledRequest = KeyValuePair.Create(requestId, KeyValuePair.Create(DateTime.UtcNow, requestExpiry));
+                        notifiedHandledRequests[notifiedHandledRequest.Key] = notifiedHandledRequest.Value;
+
+                        return true;
+                    }
+                }
+            } 
+            catch (Exception ex)
+            {
+                log.Error(ex, $" In CanIHandle with requestId: {requestId}");
+            }
+
+            return false;
+        }
+
+        /// <summary>
+        /// notifies all cluster nodes of handled requests
+        /// </summary>
+        /// <returns></returns>
+        public abstract bool NotifyHandledRequest(string requestId);
+
+        public abstract bool StartCoordinatorActivity();
+
+        /// <summary>
+        /// in case of new coordinator elected and this node is considered as a time-out coordinator
+        /// </summary>
+        /// <param name="currentCoordinator"></param>
+        /// <returns></returns>
+        public abstract bool StopCoordinatorActivity(string currentCoordinator);
+
+        public abstract bool AddClusterNode(string clusterNodeUri);
 
         public abstract bool RemoveClusterNode(string clusterNodeuri);
+
+        #endregion
 
         public string GetCoordinatorIp()
         {

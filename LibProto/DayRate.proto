@@ -50,6 +50,20 @@ service DayRate {
       body: "*"
     };
   }
+  rpc GetNotifiedRequests (GenericMessages.GetNotifiedRequestsRequest) returns (GenericMessages.GetNotifiedRequestsResponse)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/GetNotifiedRequests"
+      body: "*"
+    };
+  }
+  rpc CanIHandle (GenericMessages.CanIHandleRequest) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/CanIHandle"
+      body: "*"
+    };
+  }
   rpc CanICoordinate (GenericMessages.CanICoordinateRequest) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {

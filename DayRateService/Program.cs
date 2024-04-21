@@ -89,6 +89,7 @@ DayRateManager.Instance.Init<MicroservicesProtos.DayRate.DayRateClient>(customLB
     (DayRateDbService)builder.Services.BuildServiceProvider().GetRequiredService(typeof(DayRateDbService)),
     (IDistributedCache)builder.Services.BuildServiceProvider().GetRequiredService(typeof(IDistributedCache)),
     clusterNodes,
+    mapper,
     (string)(builder.Configuration.GetValue(typeof(string), "MiddlewareEndpoint") ?? 15000),
     (int)(builder.Configuration.GetValue(typeof(int), "MaxThreads") ?? 3),
     (int)(builder.Configuration.GetValue(typeof(int), "RequestExpiryInMilliseconds") ?? 15000));

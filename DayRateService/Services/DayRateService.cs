@@ -24,15 +24,6 @@ namespace DayRateService.Services
             this.mapper = mapper;
         }
 
-        private bool WriteAndAssignRequest<T>(T request)
-        {
-            //write request in redis cache
-            
-            //assign request id to an available microservice instance
-
-            return false;
-        }
-
         public override Task<AsyncResult> UpsertDayRate(UpsertDayRateRequest request, ServerCallContext context)
         {
             try
@@ -42,10 +33,13 @@ namespace DayRateService.Services
                 //async without waiting
                 _ = DayRateManager.Instance.UpsertDayRate(request.RequestCamp.RequestId, mapper.Map<LibDTO.DayRate>(request.DayRate), request.RequestCamp.RequiredDelay);
 
+                //essential for request handling through reflection
+                string requestId = nameof(UpsertDayRateRequest) + "@" + request.RequestCamp.RequestId;
+
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) &&
-                          cache.SetRecordAsync<UpsertDayRateRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(requestId) &&
+                          cache.SetRecordAsync<UpsertDayRateRequest>(requestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -67,11 +61,14 @@ namespace DayRateService.Services
 
                 //async without waiting
                 _ = DayRateManager.Instance.GetDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
+                
+                //essential for request handling through reflection
+                string requestId = nameof(GetDayRateRequest) + "@" + request.RequestCamp.RequestId;
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) &&
-                          cache.SetRecordAsync<GetDayRateRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(requestId) &&
+                          cache.SetRecordAsync<GetDayRateRequest>(requestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -94,10 +91,13 @@ namespace DayRateService.Services
                 //async without waiting
                 _ = DayRateManager.Instance.GetDayRates(request.RequestCamp.RequestId, request.RequestCamp.RequiredDelay);
 
+                //essential for request handling through reflection
+                string requestId = nameof(GetDayRatesRequest) + "@" + request.RequestCamp.RequestId;
+
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) && 
-                          cache.SetRecordAsync<GetDayRatesRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(requestId) && 
+                          cache.SetRecordAsync<GetDayRatesRequest>(requestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -120,10 +120,13 @@ namespace DayRateService.Services
                 //async without waiting
                 _ = DayRateManager.Instance.DeleteDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
 
+                //essential for request handling through reflection
+                string requestId = nameof(DeleteDayRateRequest) + "@" + request.RequestCamp.RequestId;
+
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) && 
-                          cache.SetRecordAsync<DeleteDayRateRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(requestId) && 
+                          cache.SetRecordAsync<DeleteDayRateRequest>(requestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -149,10 +152,13 @@ namespace DayRateService.Services
                         TimeSpan.FromSeconds(request.End),
                         request.RequestCamp.RequiredDelay);
 
+                //essential for request handling through reflection
+                string requestId = nameof(CalculateDayFeeRequest) + "@" + request.RequestCamp.RequestId;
+
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = DayRateManager.Instance.NotifyHandledRequest(request.RequestCamp.RequestId) && 
-                          cache.SetRecordAsync<CalculateDayFeeRequest>(request.RequestCamp.RequestId, request).Result
+                    Awk = DayRateManager.Instance.NotifyHandledRequest(requestId) && 
+                          cache.SetRecordAsync<CalculateDayFeeRequest>(requestId, request).Result
                 });
             }
             catch (Exception ex)
@@ -182,6 +188,55 @@ namespace DayRateService.Services
             catch (Exception ex)
             {
                 log.Error(ex, " In NotifyHandledRequest()!");
+            }
+
+            return Task.FromResult(new SyncResult
+            {
+                Result = false
+            });
+        }
+
+        public override Task<GetNotifiedRequestsResponse> GetNotifiedRequests(GetNotifiedRequestsRequest request, ServerCallContext context)
+        {
+            var response = new GetNotifiedRequestsResponse();
+
+            try
+            {
+                log.Info($"Invoked GetNotifiedRequests with senderIP: {request.SenderIP}");
+
+                var notifiedRequestIds = DayRateManager.Instance.notifiedHandledRequests.Select(kvp => kvp.Key).ToList();
+
+                foreach (var notifiedRequestId in notifiedRequestIds)
+                    response.Requests.Add(new NotifyHandledRequestMsg()
+                    {
+                        RequestId = notifiedRequestId,
+                        Expiry = DayRateManager.Instance.requestExpiryInMilliseconds
+                    });
+
+                return Task.FromResult(response);
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In GetNotifiedRequests()!");
+            }
+
+            return Task.FromResult(response);
+        }
+
+        public override Task<SyncResult> CanIHandle(CanIHandleRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked CanIHandle with requestId: {request.RequestId}");
+
+                return Task.FromResult(new SyncResult
+                {
+                    Result = DayRateManager.Instance.CanIHandle(request.RequestId, request.Expiry)
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In CanIHandle()!");
             }
 
             return Task.FromResult(new SyncResult
