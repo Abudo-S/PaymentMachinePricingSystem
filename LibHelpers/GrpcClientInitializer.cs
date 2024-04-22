@@ -33,11 +33,20 @@ namespace LibHelpers
             //prepare http client to ignore ssl certificate
             var httpClientHandler = new HttpClientHandler();
 
+
+            //builder.Services.AddGrpcClient<DayRateServices.DayRateService>(o => { o.Address = new Uri("http://localhost:5039"); })
+            //.ConfigureChannel(o =>
+            //{
+            //    o.HttpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new
+            //                  HttpClientHandler()));
+            //});
+
+
             //will ignore certificate validation errors, if you need that you may comment this section or make it configurable
-            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
-            {
-                return true;
-            };
+            //httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+            //{
+            //    return true;
+            //};
 
             var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWeb, httpClientHandler));
 
