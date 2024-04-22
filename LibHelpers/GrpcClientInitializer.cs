@@ -28,27 +28,23 @@ namespace LibHelpers
             clusterGrpcClients = new();
         }
 
-        public ClientBase BuildSingleGrpcClient<T>(string channelAddr) where T : ClientBase
+        public ClientBase BuildSingleGrpcClient<T>(string channelAddr, bool useHttp2 = false) where T : ClientBase
         {
             //prepare http client to ignore ssl certificate
             var httpClientHandler = new HttpClientHandler();
 
-
-            //builder.Services.AddGrpcClient<DayRateServices.DayRateService>(o => { o.Address = new Uri("http://localhost:5039"); })
-            //.ConfigureChannel(o =>
-            //{
-            //    o.HttpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWebText, new
-            //                  HttpClientHandler()));
-            //});
-
-
             //will ignore certificate validation errors, if you need that you may comment this section or make it configurable
-            //httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
-            //{
-            //    return true;
-            //};
+            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+            {
+                return true;
+            };
 
-            var httpClient = new HttpClient(new GrpcWebHandler(GrpcWebMode.GrpcWeb, httpClientHandler));
+            var grpcWebhandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, httpClientHandler);
+
+            if (!useHttp2)
+                grpcWebhandler.HttpVersion = new Version(1, 1);
+
+            var httpClient = new HttpClient(grpcWebhandler);
 
             var protoChannel = GrpcChannel.ForAddress(channelAddr, new GrpcChannelOptions { HttpClient = httpClient });
 
