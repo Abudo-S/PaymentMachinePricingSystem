@@ -1,45 +1,105 @@
 version: '3.4'
 
 services:
+  mongo:
+    container_name: pricingsystem_mongodb
+    image: mongo
+    restart: always
+    environment:
+      MONGO_INITDB_DATABASE: PricingSystemDB
+    ports:
+      - "5003:6379"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.2
+    volumes:
+      - /data/db
+    command: ["mongod", "--port", "5003"]
+
+  redis:
+    container_name: dayrateservice_redis
+    image: redis
+    restart: always
+    ports:
+      - "5002:6379"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.3
+    volumes:
+      - /dayrateservice_redis/conf:/usr/local/etc/redis
+
   DayRateService:
-    image: ${DOCKER_REGISTRY-}dayrateservice
-    container_name: DayRateServiceContainer
+    container_name: ${DOCKER_REGISTRY-}dayrateservice
+    image: dayrateservice
+    restart: always
     build:
       context: .
-      dockerfile: DayRateService/Dockerfile
-    environment: 
+      dockerfile: ./DayRateService/Dockerfile
+    environment:
       - ASPNETCORE_ENVIORNMENT=Development
-      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
     ports:
-      - "4000:80"
-      - "4001:443"
+      - "8000:80"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.4
     volumes:
-      # - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
-      # - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
-      - ./server:/app
-      - /app/obj/
-      - /app/bin/
-      - /app/out/
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
 
   DayRateService1:
-    image: ${DOCKER_REGISTRY-}dayrateservice
-    container_name: DayRateServiceContainer1
+    container_name: ${DOCKER_REGISTRY-}dayrateservice1
+    image: dayrateservice
+    restart: always
     build:
       context: .
-      dockerfile: DayRateService/Dockerfile
-    environment: 
+      dockerfile: ./DayRateService/Dockerfile
+    environment:
       - ASPNETCORE_ENVIORNMENT=Development
-      - ASPNETCORE_URLS=https://+:443;http://+:80
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
     ports:
-      - "6000:80"
-      - "6001:443"
+      - "7000:80"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.5
     volumes:
-      # - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
-      # - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
-      - ./server:/app
-      - /app/obj/
-      - /app/bin/
-      - /app/out/
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+
+  DayRateService2:
+    container_name: ${DOCKER_REGISTRY-}dayrateservice2
+    image: dayrateservice
+    restart: always
+    build:
+      context: .
+      dockerfile: ./DayRateService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
+    ports:
+      - "9000:80"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.6
+    volumes:
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+
+#first we need to execute: docker network create --driver=bridge --subnet=172.18.0.0/24 paymentMachinePricingSystem_network
+networks:
+  paymentMachinePricingSystem_network:
+    external: true
+    # driver: bridge
+    # ipam:
+    #   config:
+    #     - subnet: 172.18.0.0/16
+    #       gateway: 172.18.0.1
 
   # WeekPayModelService:
   #   image: ${DOCKER_REGISTRY-}WeekPayModelService

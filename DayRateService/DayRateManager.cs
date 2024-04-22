@@ -41,6 +41,7 @@ namespace DayRateService
             notifiedHandledRequests = new();
             nThreadsLock = new object();
             bullyElectionLock = new object();
+            currentClusterCoordinatorLock = new();
         }
 
         public override void AskForPendingRequests()
@@ -334,18 +335,22 @@ namespace DayRateService
         {
             await this.UpsertDayRate(request.RequestCamp.RequestId, mapper.Map<LibDTO.DayRate>(request.DayRate), request.RequestCamp.RequiredDelay);
         }
+
         public async Task Recover_GetDayRate(GetDayRateRequest request)
         {
             await this.GetDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
         }
+
         public async Task Recover_GetDayRates(GetDayRatesRequest request)
         {
             await this.GetDayRates(request.RequestCamp.RequestId, request.RequestCamp.RequiredDelay);
         }
+
         public async Task Recover_DeleteDayRate(DeleteDayRateRequest request)
         {
             await this.DeleteDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay);
         }
+
         public async Task Recover_CalculateDayFee(CalculateDayFeeRequest request)
         {
             await this.CalculateDayFee(request.RequestCamp.RequestId,

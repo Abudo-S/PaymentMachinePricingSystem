@@ -143,8 +143,19 @@ namespace LibDTO.Generic
 
         private void InitPollyCircuitRetryPolicies()
         {
+            //generic system timeout policy
+            var retryPolicy = Policy.Handle<TimeoutException>()
+            .WaitAndRetryAsync(3,
+            retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
+            (ex, time) => {
+                //log.Warn(ex, $"In timeoutCircuitRetryPolicy [{time}]");
+                log.Warn($"In GenericPollyRetryPolicy [{time}], msg: {ex.Message}");
+            });
+            var circuitBreakerPolicy = Policy.Handle<RedisException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+            var timeoutCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
+
             //grpc policy
-            var retryPolicy = Policy.Handle<RpcException>(ex =>
+            retryPolicy = Policy.Handle<RpcException>(ex =>
                 new StatusCode[] { StatusCode.Cancelled, StatusCode.Unavailable, StatusCode.DataLoss }.Contains(ex.StatusCode))
                 .WaitAndRetryAsync(3,
                 retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
@@ -152,8 +163,11 @@ namespace LibDTO.Generic
                     //log.Warn(ex. $"In GrpcPollyRetryPolicy [{time}]");
                     log.Warn($"In GrpcPollyRetryPolicy [{time}], msg: {ex.Message}");
                 });
-            var circuitBreakerPolicy = Policy.Handle<RpcException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
-            grpcCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
+
+            circuitBreakerPolicy = Policy.Handle<RpcException>(ex =>
+                new StatusCode[] { StatusCode.Cancelled, StatusCode.Unavailable, StatusCode.DataLoss }.Contains(ex.StatusCode))
+                .CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+            grpcCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy).WrapAsync(timeoutCircuitRetryPolicy);
 
             //redis policy
             retryPolicy = Policy.Handle<RedisException>()
@@ -163,8 +177,8 @@ namespace LibDTO.Generic
                 //log.Warn(ex, $"In RedisPollyRetryPolicy [{time}]");
                 log.Warn($"In RediscPollyRetryPolicy [{time}], msg: {ex.Message}");
             });
-            circuitBreakerPolicy = Policy.Handle<RpcException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
-            redisCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
+            circuitBreakerPolicy = Policy.Handle<RedisException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+            redisCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy).WrapAsync(timeoutCircuitRetryPolicy);
 
             //mongo policy
             retryPolicy = Policy.Handle<MongoException>(ex => 
@@ -176,8 +190,11 @@ namespace LibDTO.Generic
                     //log.Warn(ex, $"In MongoPollyRetryPolicy [{time}]");
                     log.Warn($"In MongoPollyRetryPolicy [{time}], msg: {ex.Message}");
                 });
-            circuitBreakerPolicy = Policy.Handle<RpcException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
-            mongoCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
+            circuitBreakerPolicy = Policy.Handle<MongoException>(ex =>
+                ex is MongoExecutionTimeoutException || ex is MongoClientException || ex is MongoServerException ||
+                ex is MongoConnectionException || ex is MongoWaitQueueFullException)
+                .CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+            mongoCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy).WrapAsync(timeoutCircuitRetryPolicy);
         }
 
         /// <summary>

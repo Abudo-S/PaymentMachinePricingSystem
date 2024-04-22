@@ -32,18 +32,20 @@
 #docker build . -t imageTag -f .\projFolder\Dockerfile
 #Sometimes you'll need to delete cached builds from docker desktop
 #To add relative redis image with container: docker run --name dayrateservice_redis -p 5002:6379 -d redis
-#To add relative mongodb image with container: docker run --name pricingSystem_mongodb -p 5003:6379 -d mongo
+#To add relative mongodb image with container: docker run --name pricingsystem_mongodb -e MONGO_INITDB_DATABASE=PricingSystemDB -e MONGO_INITDB_ROOT_USERNAME=mongo -e MONGO_INITDB_ROOT_PASSWORD=pwd -p 5003:6379 -d mongo
+#docker run -d --rm --name pricingsystem_mongodb -e MONGO_INITDB_DATABASE=PricingSystemDB -p 5003:6379 -v mongodbdata:/data/db mongo mongod --port 6379
 #To run existing  .net image with configuration: docker run --name dayrateservice --rm -it -p 8000:80 -p 8001:443 -e ASPNETCORE_URLS="https://+;http://+" -e ASPNETCORE_HTTPS_PORTS=8001  -e ASPNETCORE_HTTP_PORTS=8000 -d dayrateservice
 #only http container: docker run --name dayrateservice --rm -it -p 8000:80 -e ASPNETCORE_URLS="http://+" -e ASPNETCORE_HTTP_PORTS=80 -d dayrateservice
 #create network bridge and add running containers to them: docker network create paymentMachinePricingSystem_network
 #docker network connect paymentMachinePricingSystem_network dayrateservice
 #docker network connect paymentMachinePricingSystem_network dayrateservice_redis
 #inspect service container ip: docker inspect --format='{{.NetworkSettings.IPAddress}}' dayrateservice_redis
+#inspect container ip with pre-assigned network: docker inspect --format='{{json .NetworkSettings.Networks.paymentMachinePricingSystem_network.IPAddress}}' dayrateservice_redis
+#to create a subnet that enables us to set a static ip per container: docker network create --driver=bridge --subnet=172.18.0.0/24 paymentMachinePricingSystem_network
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
 EXPOSE 8080
-EXPOSE 8081
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src

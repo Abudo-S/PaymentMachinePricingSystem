@@ -17,6 +17,8 @@ namespace DayRateService.DbServices
             var mongoDatabase = mongoClient.GetDatabase(
                 pricingSystemDataBaseConfig.Value.DatabaseName);
 
+            //mongoDatabase.CreateCollection(pricingSystemDataBaseConfig.Value.DayRateCollectionName);
+
             dayRateCollection = mongoDatabase.GetCollection<DayRate>(
                 pricingSystemDataBaseConfig.Value.DayRateCollectionName);
         }
