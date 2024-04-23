@@ -293,7 +293,7 @@ namespace LibDTO.Generic
 
         public void InitPingingTimer(ElapsedEventHandler onElapsedTimer)
         {
-            clusterNodesTimer = new System.Timers.Timer(10000); //10 sec 
+            clusterNodesTimer = new System.Timers.Timer(30000); //30 sec 
             clusterNodesTimer.Elapsed += onElapsedTimer;
             clusterNodesTimer.AutoReset = true;
 

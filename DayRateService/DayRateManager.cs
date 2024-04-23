@@ -444,7 +444,8 @@ namespace DayRateService
                                     .Select(kvp => kvp.Key)
                                     .ToList();
 
-                log.Debug($"Detected offlineNodes [can be caused by timeout]: {string.Join(",", offlineNodes)}");
+                if(offlineNodes.Count > 0)
+                    log.Debug($"Detected offlineNodes [can be caused by timeout]: {string.Join(",", offlineNodes)}");
             }
             catch (Exception ex)
             {
@@ -483,17 +484,14 @@ namespace DayRateService
                         //in case of received CaptureCoordinator, which means that this node isn't a coordinator anymore
                         if (majorCoordinator != machineIP)
                         {
+                            log.Info($"Detected majorCoordinator: {majorCoordinator}, while considered coordinator with machineIP: {machineIP}");
                             StopCoordinatorActivity(coordinatorIp);
                         }
                     }
-                    else if (currentClusterCoordinatorIp != null) //in case of an existing coordinator
+                    else
                     {
                         currentClusterCoordinatorIp = coordinatorIp;
                         coordinatorTraceTimer.Stop();
-                        coordinatorTraceTimer.Start();
-                    }
-                    else //first time to coordinator inactivity, so initialize its timer
-                    {
                         coordinatorTraceTimer.Start();
                     }
                 }

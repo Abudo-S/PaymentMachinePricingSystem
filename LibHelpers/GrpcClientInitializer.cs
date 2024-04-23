@@ -30,22 +30,27 @@ namespace LibHelpers
 
         public ClientBase BuildSingleGrpcClient<T>(string channelAddr, bool useHttp2 = false) where T : ClientBase
         {
-            //prepare http client to ignore ssl certificate
             var httpClientHandler = new HttpClientHandler();
-
-            //will ignore certificate validation errors, if you need that you may comment this section or make it configurable
-            httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
-            {
-                return true;
-            };
-
-            var grpcWebhandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, httpClientHandler);
+            GrpcWebHandler grpcWebhandler;
 
             if (!useHttp2)
+            {
+                grpcWebhandler = new GrpcWebHandler(GrpcWebMode.GrpcWebText, httpClientHandler);
                 grpcWebhandler.HttpVersion = new Version(1, 1);
+            }
+            else
+            {
+                //will ignore certificate validation errors, if you need that you may comment this section or make it configurable
+                httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+                {
+                    return true;
+                };
+
+                grpcWebhandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, httpClientHandler);
+                grpcWebhandler.HttpVersion = new Version(2, 0);
+            }
 
             var httpClient = new HttpClient(grpcWebhandler);
-
             var protoChannel = GrpcChannel.ForAddress(channelAddr, new GrpcChannelOptions { HttpClient = httpClient });
 
             return (ClientBase)Activator.CreateInstance(typeof(T), protoChannel);

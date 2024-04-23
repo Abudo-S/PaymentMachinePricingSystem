@@ -14,7 +14,7 @@ services:
         ipv4_address: 172.18.0.2
     volumes:
       - /data/db
-    command: ["mongod", "--port", "5003"]
+    command: ["mongod", "--port", "6379"]
 
   redis:
     container_name: dayrateservice_redis
