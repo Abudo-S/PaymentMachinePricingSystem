@@ -139,7 +139,6 @@ message CalculateDayFeeRequest {
 message UpsertDayRateResponse {
   GenericMessages.GenericRequestData RequestCamp = 1;
   GenericMessages.OperationResult Result = 2;
-  DayRateType DayRate = 3;
 }
 
 message GetDayRateResponse {

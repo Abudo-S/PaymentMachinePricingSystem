@@ -4,15 +4,106 @@ import "google/api/annotations.proto";
 import "google/protobuf/timestamp.proto";
 import "google/protobuf/duration.proto";
 import "GenericMessages.proto";
+import "TimeInterval.proto";
+import "DayRate.proto";
+import "WeekPayModel.proto";
 
-package MiddlewareProtos;
+
+package MiddlewareProto;
 
 service RequestHandler {
-	rpc Test (GenericMessages.AsyncResult) returns (GenericMessages.AsyncResult)
+  rpc NotifyClusterCoordinator (NotifyClusterCoordinatorRequest) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {
-      post: "/HttpAPI/MiddlewareProtos/RequestHandlerMiddleware/Test"
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/NotifyClusterCoordinator"
+      body: "*"
+    };
+  }
+  rpc NotifyProcessedRequest (NotifyProcessedRequestMessage) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/NotifyProcessedResponse"
+      body: "*"
+    };
+  }
+  rpc CalculateFee (CalculateFeeRequest) returns (CalculateFeeResponse)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/CalculateFee"
+      body: "*"
+    };
+  }
+
+  rpc UpsertDayRate (DayRate.UpsertDayRateRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/UpsertDayRate"
+      body: "*"
+    };
+  }
+  rpc GetDayRate (DayRate.GetDayRateRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/GetDayRate"
+      body: "*"
+    };
+  }
+  rpc GetDayRates (DayRate.GetDayRatesRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/GetDayRates"
+      body: "*"
+    };
+  }
+  rpc DeleteDayRate (DayRate.DeleteDayRateRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/DeleteDayRate"
       body: "*"
     };
   }
 }
+
+//STR Requests
+message NotifyClusterCoordinatorRequest {
+    string CoordinatorEndpoint = 1;
+    string ClusterType = 2;
+}
+
+message NotifyProcessedRequestMessage {
+    string ResponseType = 1;
+    string ResponseJson = 2;
+}
+
+message CalculateFeeRequest {
+    double StartDateTime = 1; //OX time
+    double EndDateTime = 1; //OX time
+}
+
+//STR DayRate CRUD
+message UpsertDayRateRequest {
+  DayRate.DayRateType DayRate = 1;
+}
+
+message GetDayRateRequest {
+  int32 Id = 2;
+}
+
+message GetDayRatesRequest {
+  
+}
+
+message DeleteDayRateRequest {
+  int32 Id = 1;
+}
+//END DayRate CRUD
+
+//End Requests
+
+
+//STR Responses
+message CalculateFeeResponse {
+    double Fee = 1;
+}
+
+//END Responses

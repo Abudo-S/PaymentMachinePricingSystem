@@ -1,4 +1,5 @@
 ﻿using LibDTO;
+using LibDTO.Config;
 using Microsoft.Extensions.Options;
 using MongoDB.Driver;
 

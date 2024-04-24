@@ -11,13 +11,13 @@ using System.Collections;
 using Grpc.Net.Client.Web;
 using DayRateService;
 using Microsoft.Extensions.Configuration;
-using LibDTO;
 using DayRateService.DbServices;
 using AutoMapper;
 using LibDTO.Generic;
 using Microsoft.Extensions.Caching.Distributed;
 using System.Net.Sockets;
 using System.Net;
+using LibDTO.Config;
 
 var builder = WebApplication.CreateBuilder(args);
 
