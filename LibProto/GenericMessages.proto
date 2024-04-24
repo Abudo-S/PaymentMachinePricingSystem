@@ -15,8 +15,7 @@ message OperationResult {
 	bool Elaborated = 2;
 }
 
-message IsAliveRequest 
-{
+message IsAliveRequest {
 	string SenderIP = 1;
 }
 

@@ -48,7 +48,7 @@ builder.Services.AddResponseCompression(opts =>
 //if enabled, we can't overide ports through docker's container-command
 //builder.WebHost.UseKestrel(option =>
 //{
-//    option.ListenAnyIP(80, config =>
+//    option.ListenAnyIP(8080, config =>
 //    {
 //        config.Protocols = HttpProtocols.Http1AndHttp2;
 //    });
@@ -86,7 +86,9 @@ builder.Services.AddScoped<DayRateServices.DayRateService>();
 var machineIP = Dns.GetHostByName(Dns.GetHostName()).AddressList.First(address => address.AddressFamily == AddressFamily.InterNetwork).ToString();
 List<string> clusterNodes = new List<string>();
 builder.Configuration.GetSection("ClusterNodes").Bind(clusterNodes);
-var customLBPP = new CustomLoadBalancerProxyProvider(clusterNodes.Where(clusterNode => !clusterNode.Contains(machineIP)).ToList());
+//exclude current node
+clusterNodes = clusterNodes.Where(clusterNode => !clusterNode.Contains(machineIP)).ToList();
+var customLBPP = new CustomLoadBalancerProxyProvider(clusterNodes);
 builder.Services.AddSingleton<IProxyConfigProvider>(customLBPP).AddReverseProxy();
 
 DayRateManager.Instance.Init<MicroservicesProtos.DayRate.DayRateClient>(customLBPP, 

@@ -15,6 +15,9 @@ using MongoDB.Driver;
 using System.Runtime.CompilerServices;
 using MongoDB.Driver.Linq;
 using AutoMapper;
+using Polly.CircuitBreaker;
+using Google.Api;
+using System.Threading;
 
 namespace LibDTO.Generic
 {
@@ -36,12 +39,12 @@ namespace LibDTO.Generic
         /// it changes due to coordinator inactivity
         /// </summary>
         protected string currentClusterCoordinatorIp;
-        protected object currentClusterCoordinatorLock;
+        protected SemaphoreSlim currentClusterCoordinatorSem;
 
         protected int nThreads;
 
         protected object nThreadsLock;
-        protected object bullyElectionLock;
+        protected SemaphoreSlim bullyElectionLockSem;
 
         /// <summary>
         /// will be used to create a grpc client in case of cluster node
@@ -53,10 +56,10 @@ namespace LibDTO.Generic
         /// </summary>
         protected List<string> otherClusterNodes;
 
-        ///// <summary>
-        ///// nodes present in otherClusterNodes that have heigher id
-        ///// </summary>
-        //protected List<string> heigherClusterNodes;
+        /// <summary>
+        /// nodes present in otherClusterNodes that have higher id
+        /// </summary>
+        //protected List<string> higherClusterNodes;
 
         protected object dbService;
 
@@ -69,8 +72,6 @@ namespace LibDTO.Generic
         /// </summary>
         protected CustomLoadBalancerProxyProvider currentLoadBalancer;
         protected IMapper mapper;
-
-        protected CancellationTokenSource cts;
 
         protected IDistributedCache cache;
 
@@ -115,7 +116,7 @@ namespace LibDTO.Generic
                 this.cache = cache;
                 this.dbService = dbService;
                 this.otherClusterNodes = otherClusterNodes;
-                //heigherClusterNodes = otherClusterNodes.Where(clusterNode => clusterNode.Replace("http://", "").GetHashCode() > machineIP.GetHashCode()).ToList();
+                //higherClusterNodes = otherClusterNodes.Where(clusterNode => clusterNode.Replace("http://", "").GetHashCode() > machineIP.GetHashCode()).ToList();
                 this.middlewareEndpoint = middlewareEndpoint;
                 nThreads = maxThreads;
                 this.requestExpiryInMilliseconds = requestExpiryInMilliseconds;
@@ -124,11 +125,14 @@ namespace LibDTO.Generic
 
                 Task.Run(() =>
                 {
-                    //init cluster nodes clients
-                    GrpcClientInitializer.Instance.InitializeClusterGrpcClients<T>(otherClusterNodes);
+                    //grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                    //{
+                        //init cluster nodes clients
+                        GrpcClientInitializer.Instance.InitializeClusterGrpcClients<T>(otherClusterNodes);
 
-                    //ask all nodes for unique pending notified requests
-                    AskForPendingRequests(); 
+                        //ask all nodes for unique pending notified requests
+                        AskForPendingRequests();
+                    //});
                 });
 
                 //prepare timers
@@ -141,64 +145,90 @@ namespace LibDTO.Generic
             }
         }
 
+
+        /// <summary>
+        /// the order of policy wrapping is important: 
+        /// circuitBreakerPolicy.WrapAsync(retryPolicy).WrapAsync(timeoutCircuitRetryPolicy)
+        /// </summary>
         private void InitPollyCircuitRetryPolicies()
         {
             //generic system timeout policy
             var retryPolicy = Policy.Handle<TimeoutException>()
-            .WaitAndRetryAsync(3,
+            .WaitAndRetryAsync(30,
             retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
-            (ex, time) => {
-                //log.Warn(ex, $"In timeoutCircuitRetryPolicy [{time}]");
-                log.Warn($"In GenericPollyRetryPolicy [{time}], msg: {ex.Message}");
+            (ex, time, context) => {
+                try
+                {
+                    var methodMsg = context.Contains("methodMsg") ? context["methodMsg"] : "";
+                    //log.Warn(ex, $"In genericCircuitRetryPolicy [{time}]");
+                    log.Warn($"In GenericPollyRetryPolicy [{time}], methodMsg: {methodMsg}, msg: {ex.Message}");
+                }
+                catch (BrokenCircuitException) { }
             });
-            var circuitBreakerPolicy = Policy.Handle<RedisException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
-            var timeoutCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy);
+
+            var circuitBreakerPolicy = Policy.Handle<TimeoutException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
+            var timeoutCircuitRetryPolicy = circuitBreakerPolicy.WrapAsync(retryPolicy);
 
             //grpc policy
             retryPolicy = Policy.Handle<RpcException>(ex =>
                 new StatusCode[] { StatusCode.Cancelled, StatusCode.Unavailable, StatusCode.DataLoss }.Contains(ex.StatusCode))
-                .WaitAndRetryAsync(3,
+                .WaitAndRetryAsync(30,
                 retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
-                (ex, time) => {
-                    //log.Warn(ex. $"In GrpcPollyRetryPolicy [{time}]");
-                    log.Warn($"In GrpcPollyRetryPolicy [{time}], msg: {ex.Message}");
+                (ex, time, context) => {
+                    try
+                    {
+                        var methodMsg = context.Contains("methodMsg") ? context["methodMsg"] : "";
+                        //log.Warn(ex, $"In GrpcCircuitRetryPolicy [{time}]");
+                        log.Warn($"In GrpcPollyRetryPolicy [{time}], methodMsg: {methodMsg}, msg: {ex.Message}");
+                    }
+                    catch (BrokenCircuitException) { }
                 });
 
             circuitBreakerPolicy = Policy.Handle<RpcException>(ex =>
                 new StatusCode[] { StatusCode.Cancelled, StatusCode.Unavailable, StatusCode.DataLoss }.Contains(ex.StatusCode))
                 .CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
-            grpcCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy).WrapAsync(timeoutCircuitRetryPolicy);
+            grpcCircuitRetryPolicy = circuitBreakerPolicy.WrapAsync(retryPolicy).WrapAsync(timeoutCircuitRetryPolicy);
 
             //redis policy
             retryPolicy = Policy.Handle<RedisException>()
-            .WaitAndRetryAsync(3,
+            .WaitAndRetryAsync(30,
             retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
-            (ex, time) => {
-                //log.Warn(ex, $"In RedisPollyRetryPolicy [{time}]");
-                log.Warn($"In RediscPollyRetryPolicy [{time}], msg: {ex.Message}");
+            (ex, time, context) => {
+                try
+                {
+                    var methodMsg = context.Contains("methodMsg") ? context["methodMsg"] : "";
+                    //log.Warn(ex, $"In RedisCircuitRetryPolicy [{time}]");
+                    log.Warn($"In RedisPollyRetryPolicy [{time}], methodMsg: {methodMsg}, msg: {ex.Message}");
+                }
+                catch (BrokenCircuitException) { }
             });
             circuitBreakerPolicy = Policy.Handle<RedisException>().CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
-            redisCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy).WrapAsync(timeoutCircuitRetryPolicy);
+            redisCircuitRetryPolicy = circuitBreakerPolicy.WrapAsync(retryPolicy).WrapAsync(timeoutCircuitRetryPolicy);
 
             //mongo policy
             retryPolicy = Policy.Handle<MongoException>(ex => 
             ex is MongoExecutionTimeoutException || ex is MongoClientException || ex is MongoServerException ||
             ex is MongoConnectionException || ex is MongoWaitQueueFullException)
-                .WaitAndRetryAsync(3,
+                .WaitAndRetryAsync(30,
                 retryAttempt => TimeSpan.FromSeconds(Math.Pow(3, retryAttempt)),
-                (ex, time) => {
-                    //log.Warn(ex, $"In MongoPollyRetryPolicy [{time}]");
-                    log.Warn($"In MongoPollyRetryPolicy [{time}], msg: {ex.Message}");
+                (ex, time, context) => {
+                    try
+                    {
+                        var methodMsg = context.Contains("methodMsg") ? context["methodMsg"] : "";
+                        //log.Warn(ex, $"In MongoCircuitRetryPolicy [{time}]");
+                        log.Warn($"In MongoPollyRetryPolicy [{time}], methodMsg: {methodMsg}, msg: {ex.Message}");
+                    }
+                    catch (BrokenCircuitException) { }
                 });
             circuitBreakerPolicy = Policy.Handle<MongoException>(ex =>
                 ex is MongoExecutionTimeoutException || ex is MongoClientException || ex is MongoServerException ||
                 ex is MongoConnectionException || ex is MongoWaitQueueFullException)
                 .CircuitBreakerAsync(3, TimeSpan.FromSeconds(30));
-            mongoCircuitRetryPolicy = retryPolicy.WrapAsync(circuitBreakerPolicy).WrapAsync(timeoutCircuitRetryPolicy);
+            mongoCircuitRetryPolicy = circuitBreakerPolicy.WrapAsync(retryPolicy).WrapAsync(timeoutCircuitRetryPolicy);
         }
 
         /// <summary>
-        /// take into account external request handling
+        /// takes into account external request handling
         /// </summary>
         /// <param name="requestId"></param>
         /// <param name="requestExpiry">estimated expiry in seconds, declared by the node that invoked this method</param>
@@ -250,14 +280,15 @@ namespace LibDTO.Generic
             {
                 log.Info($"Invoked CheckIfNodeIdHigher anotherNodeId: {anotherNodeId}, currentNodeId {machineIP.GetHashCode()}");
 
-                var result = Monitor.TryEnter(bullyElectionLock) && anotherNodeId < machineIP.GetHashCode();
+                //block multiple elections
+                var result = bullyElectionLockSem.CurrentCount > 0 && anotherNodeId < machineIP.GetHashCode();
 
                 if (result)
                 {
-                    Task.Run(() =>
+                    Task.Run(async() =>
                     {
                         coordinatorTraceTimer.Stop();
-                        _ = CanBeCoordinator_Bully();
+                        await CanBeCoordinator_Bully();
 
                         if (!isCoordinator)
                             coordinatorTraceTimer.Start();
@@ -275,7 +306,7 @@ namespace LibDTO.Generic
         }
 
         /// <summary>
-        /// checks if no other heigher nodes are active; if so, then declare this node as coordinator.
+        /// checks if no other higher nodes are active; if so, then declare this node as coordinator.
         /// It's recommanded to run this method into a seperated Task, because it interfers with several cluster nodes
         /// </summary>
         public abstract Task CanBeCoordinator_Bully();
@@ -321,27 +352,33 @@ namespace LibDTO.Generic
         #endregion
 
         #region Coordination
-        public bool StartCoordinatorActivity()
+        public async Task<bool> StartCoordinatorActivity()
         {
             try
             {
                 log.Info("Invoked StartCoordinatorActivity");
 
-                lock (currentClusterCoordinatorLock)
-                {
-                    isCoordinator = true;
-                    currentClusterCoordinatorIp = null;
+                //wait and acquire semaphore
+                await currentClusterCoordinatorSem.WaitAsync();
 
-                    //stop coordinator tracer timer
-                    coordinatorTraceTimer.Stop();
-                    clusterNodesTimer.Start();
-                }
+                isCoordinator = true;
+                currentClusterCoordinatorIp = null;
+
+                //stop coordinator tracer timer
+                coordinatorTraceTimer.Stop();
+                clusterNodesTimer.Start();
+
+                //inform the middleware of the new coordinator
 
                 return true;
             }
             catch (Exception ex)
             {
                 log.Error(ex, "In StartCoordinatorActivity()!");
+            }
+            finally //always release semaphore
+            {
+                currentClusterCoordinatorSem.Release();
             }
 
             return false;
@@ -352,7 +389,7 @@ namespace LibDTO.Generic
         /// </summary>
         /// <param name="currentCoordinator"></param>
         /// <returns></returns>
-        public bool StopCoordinatorActivity(string currentCoordinator)
+        public async Task<bool> StopCoordinatorActivity(string currentCoordinator)
         {
             bool result = false;
 
@@ -360,21 +397,25 @@ namespace LibDTO.Generic
             {
                 log.Info("Invoked StopCoordinatorActivity");
 
-                lock (currentClusterCoordinatorLock)
-                {
-                    isCoordinator = false;
-                    currentClusterCoordinatorIp = currentCoordinator;
+                //wait and acquire semaphore
+                await currentClusterCoordinatorSem.WaitAsync();
 
-                    //stop cluster node pinging
-                    clusterNodesTimer.Stop();
+                isCoordinator = false;
+                currentClusterCoordinatorIp = currentCoordinator;
 
-                    //start coordinator tracer timer
-                    coordinatorTraceTimer.Start();
-                }
+                //stop cluster node pinging
+                clusterNodesTimer.Stop();
+
+                //start coordinator tracer timer
+                coordinatorTraceTimer.Start();
             }
             catch (Exception ex)
             {
                 log.Error(ex, "In StopCoordinatorActivity()!");
+            }
+            finally //always release semaphore
+            {
+                currentClusterCoordinatorSem.Release();
             }
 
             return result;

@@ -275,26 +275,28 @@ namespace DayRateService.Services
         }
 
 
-        public override Task<SyncResult> ConsiderNodeCoordinator(ConsiderNodeCoordinatorRequest request, ServerCallContext context)
+        public override async Task<SyncResult> ConsiderNodeCoordinator(ConsiderNodeCoordinatorRequest request, ServerCallContext context)
         {
             try
             {
                 log.Info($"Invoked ConsiderNodeCoordinator");
 
-                return Task.FromResult(new SyncResult
+                var result = await DayRateManager.Instance.StartCoordinatorActivity();
+
+                return new SyncResult
                 {
-                    Result = DayRateManager.Instance.StartCoordinatorActivity()
-                });
+                    Result = result
+                };
             }
             catch (Exception ex)
             {
                 log.Error(ex, " In ConsiderNodeCoordinator()!");
             }
 
-            return Task.FromResult(new SyncResult
+            return new SyncResult
             {
                 Result = false
-            });
+            };
         }
 
         public override Task<GetCoordinatorIpResponse> GetCoordinatorIp(GetCoordinatorIpRequest request, ServerCallContext context)
@@ -323,7 +325,7 @@ namespace DayRateService.Services
         {
             try
             {
-                log.Info($"Invoked IsAlive");
+                log.Info($"Invoked IsAlive with SenderIP: {request.SenderIP}");
 
                 Task.Run(() => DayRateManager.Instance.CaptureCoordinator(request.SenderIP));
 
