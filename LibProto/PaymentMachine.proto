@@ -1,0 +1,24 @@
+syntax = "proto3";
+
+import "google/api/annotations.proto";
+import "GenericMessages.proto";
+
+package PaymentMachineProtos;
+
+//just interface to create grpc client
+//dumb payment machine, just to receive responses
+service PaymentMachine {
+  rpc ReceiveResponse (ReceiveResponseMsg) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/PaymentMachineProtos/PaymentMachine"
+      body: "*"
+    };
+  }
+}
+
+message ReceiveResponseMsg {
+    string RequestId = 1;
+    string ResultType = 2;
+    string ResultJson = 3;
+}
