@@ -9,7 +9,7 @@ import "DayRate.proto";
 import "WeekPayModel.proto";
 
 
-package MiddlewareProto;
+package MiddlewareProtos;
 
 service RequestHandler {
   rpc NotifyClusterCoordinator (NotifyClusterCoordinatorRequest) returns (GenericMessages.SyncResult)
@@ -34,28 +34,28 @@ service RequestHandler {
     };
   }
 
-  rpc UpsertDayRate (DayRate.UpsertDayRateRequest) returns (GenericMessages.AsyncResult)
+  rpc UpsertDayRate (UpsertDayRateRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
       post: "/HttpAPI/MiddlewareProtos/RequestHandler/UpsertDayRate"
       body: "*"
     };
   }
-  rpc GetDayRate (DayRate.GetDayRateRequest) returns (GenericMessages.AsyncResult)
+  rpc GetDayRate (GetDayRateRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
       post: "/HttpAPI/MiddlewareProtos/RequestHandler/GetDayRate"
       body: "*"
     };
   }
-  rpc GetDayRates (DayRate.GetDayRatesRequest) returns (GenericMessages.AsyncResult)
+  rpc GetDayRates (GetDayRatesRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
       post: "/HttpAPI/MiddlewareProtos/RequestHandler/GetDayRates"
       body: "*"
     };
   }
-  rpc DeleteDayRate (DayRate.DeleteDayRateRequest) returns (GenericMessages.AsyncResult)
+  rpc DeleteDayRate (DeleteDayRateRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
       post: "/HttpAPI/MiddlewareProtos/RequestHandler/DeleteDayRate"
@@ -71,30 +71,40 @@ message NotifyClusterCoordinatorRequest {
 }
 
 message NotifyProcessedRequestMessage {
-    string ResponseType = 1;
-    string ResponseJson = 2;
+    string RequestId = 1;
+    string ResponseType = 2;
+    string ResponseJson = 3;
 }
 
 message CalculateFeeRequest {
-    double StartDateTime = 1; //OX time
-    double EndDateTime = 1; //OX time
+    string RequestId = 1;
+    string SenderEndpoint = 2;
+    double StartDateTime = 3; //OX time
+    double EndDateTime = 4; //OX time
 }
 
 //STR DayRate CRUD
 message UpsertDayRateRequest {
-  DayRate.DayRateType DayRate = 1;
+  string RequestId = 1; //essential to remap responses to relative client request
+  string SenderEndpoint = 2;
+  MicroservicesProtos.DayRateType DayRate = 3;
 }
 
 message GetDayRateRequest {
-  int32 Id = 2;
+  string RequestId = 1;
+  string SenderEndpoint = 2;
+  int32 Id = 3;
 }
 
 message GetDayRatesRequest {
-  
+  string RequestId = 1;
+  string SenderEndpoint = 2;
 }
 
 message DeleteDayRateRequest {
-  int32 Id = 1;
+  string RequestId = 1;
+  string SenderEndpoint = 2;
+  int32 Id = 3;
 }
 //END DayRate CRUD
 
@@ -104,6 +114,7 @@ message DeleteDayRateRequest {
 //STR Responses
 message CalculateFeeResponse {
     double Fee = 1;
+    string RequestId = 2;
 }
 
 //END Responses

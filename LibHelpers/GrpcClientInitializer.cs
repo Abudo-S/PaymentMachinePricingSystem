@@ -15,7 +15,7 @@ namespace LibHelpers
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
 
-        private Dictionary<string, ClientBase> clusterGrpcClients;
+        private Dictionary<string, ClientBase> nodesGrpcClients;
 
         #region Singleton
         private static readonly Lazy<GrpcClientInitializer> lazy =
@@ -25,7 +25,7 @@ namespace LibHelpers
 
         private GrpcClientInitializer() 
         {
-            clusterGrpcClients = new();
+            nodesGrpcClients = new();
         }
 
         public ClientBase BuildSingleGrpcClient<T>(string channelAddr, bool useHttp2 = false) where T : ClientBase
@@ -56,67 +56,66 @@ namespace LibHelpers
             return (ClientBase)Activator.CreateInstance(typeof(T), protoChannel);
         }
 
-        public void InitializeClusterGrpcClients<T>(List<string> clusterNodesAddrs) where T : ClientBase
+        public void InitializeGrpcClients<T>(List<string> clusterNodesAddrs) where T : ClientBase
         {
             foreach (var nodeChannelAddr in clusterNodesAddrs)
             {
                 try
                 {
                     var grpcServiceClient = BuildSingleGrpcClient<T>(nodeChannelAddr);
-                    clusterGrpcClients[nodeChannelAddr] = grpcServiceClient;
+                    nodesGrpcClients[nodeChannelAddr] = grpcServiceClient;
                 }
-                catch (Exception ex) 
+                catch (Exception ex)
                 {
                     log.Warn(ex, $"Can't create node client with: {nodeChannelAddr}");
-                    clusterGrpcClients[nodeChannelAddr] = null;
+                    nodesGrpcClients[nodeChannelAddr] = null;
                 }
             }
         }
 
         /// <summary>
-        /// if it notices an uninitialized node client, then it'll reinitialize it through InitializeClusterGrpcClients()
+        /// if it notices an uninitialized node client, then it'll reinitialize it through InitializeGrpcClients()
         /// </summary>
-        /// <param name="clusterNodesAddr"></param>
+        /// <param name="nodeAddr"></param>
         /// <returns></returns>
-        public ClientBase GetClusterNodeClient<T>(string clusterNodesAddr) where T : ClientBase
+        public ClientBase GetNodeClient<T>(string nodeAddr) where T : ClientBase
         {
             ClientBase client = null;
 
             try
             {
-                if (clusterGrpcClients[clusterNodesAddr] == null)
+                if (nodesGrpcClients[nodeAddr] == null)
                 {
-                    InitializeClusterGrpcClients<T>(new List<string>() { clusterNodesAddr});
+                    InitializeGrpcClients<T>(new List<string>() { nodeAddr});
                 }
 
-                client = clusterGrpcClients[clusterNodesAddr];
+                client = nodesGrpcClients[nodeAddr];
             }
             catch (Exception ex)
             {
-                log.Warn(ex, $"In GetClusterNodeClient: {clusterNodesAddr}");
+                log.Warn(ex, $"In GetNodeClient: {nodeAddr}");
             }
 
             return client;
         }
 
         /// <summary>
-        /// if it notices an uninitialized node clients, then it'll reinitialize them through InitializeClusterGrpcClients()
+        /// if it notices an uninitialized node clients, then it'll reinitialize them through InitializeGrpcClients()
         /// </summary>
-        /// <param name="clusterNodesAddr"></param>
         /// <returns></returns>
-        public List<ClientBase> GetAllClusterNodesClients<T>(string clusterNodesAddr) where T : ClientBase
+        public List<ClientBase> GetAllNodesClients<T>() where T : ClientBase
         {
             List<ClientBase> clients = new();
 
             try
             {
-                foreach (var clusterNodeAddr in clusterNodesAddr)
+                foreach (var clusterNodeAddr in nodesGrpcClients.Keys)
                 {
-                    var client = clusterGrpcClients[clusterNodesAddr];
+                    var client = nodesGrpcClients[clusterNodeAddr];
 
                     if (client == null)
                     {
-                        InitializeClusterGrpcClients<T>(new List<string>() { clusterNodesAddr });
+                        InitializeGrpcClients<T>(new List<string>() { clusterNodeAddr });
                     }
 
                     if (client != null)
@@ -125,7 +124,7 @@ namespace LibHelpers
             }
             catch (Exception ex)
             {
-                log.Warn(ex, $"In GetClusterNodeClient: {clusterNodesAddr}");
+                log.Warn(ex, $"In GetAllNodesClients");
             }
 
             return clients;
