@@ -11,7 +11,7 @@ message SyncResult {
 }
 
 message OperationResult {
-	string RequestId= 1;
+	string RequestId = 1;
 	bool Elaborated = 2;
 }
 

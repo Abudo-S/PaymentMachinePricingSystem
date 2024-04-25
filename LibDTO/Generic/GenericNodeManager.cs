@@ -18,6 +18,8 @@ using AutoMapper;
 using Polly.CircuitBreaker;
 using Google.Api;
 using System.Threading;
+using MiddlewareProtos;
+using LibDTO.Enum;
 
 namespace LibDTO.Generic
 {
@@ -47,9 +49,14 @@ namespace LibDTO.Generic
         protected SemaphoreSlim bullyElectionLockSem;
 
         /// <summary>
-        /// will be used to create a grpc client in case of cluster node
+        /// used to create/recreate a grpc client in case of cluster node
         /// </summary>
         protected string middlewareEndpoint;
+
+        /// <summary>
+        /// a grpc client in case of cluster node
+        /// </summary>
+        protected RequestHandler.RequestHandlerClient middlewareGrpcClient;
 
         /// <summary>
         /// all other cluster's nodes
@@ -123,16 +130,30 @@ namespace LibDTO.Generic
 
                 ThreadPool.SetMaxThreads(nThreads, nThreads);
 
-                Task.Run(() =>
+                //build othernodes' clients
+                Task.Run(async () =>
                 {
                     //grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                     //{
                         //init cluster nodes clients
-                        GrpcClientInitializer.Instance.InitializeClusterGrpcClients<T>(otherClusterNodes);
+                        GrpcClientInitializer.Instance.InitializeGrpcClients<T>(otherClusterNodes);
 
                         //ask all nodes for unique pending notified requests
-                        AskForPendingRequests();
+                        await AskForPendingRequests();
                     //});
+                });
+
+                //build middleware client
+                Task.Run(async () =>
+                {
+                    var result = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                                {
+                                    return GrpcClientInitializer.Instance.BuildSingleGrpcClient<RequestHandler.RequestHandlerClient>(
+                                            this.middlewareEndpoint
+                                        );
+                                });
+
+                    this.middlewareGrpcClient = (RequestHandler.RequestHandlerClient)result;
                 });
 
                 //prepare timers
@@ -257,7 +278,7 @@ namespace LibDTO.Generic
         /// <summary>
         /// It's recommanded to run this method into a seperated Task, because it interfers with several cluster nodes
         /// </summary>
-        public abstract void AskForPendingRequests();
+        public abstract Task AskForPendingRequests();
 
         public async Task<List<TResult>> RunTasksAndAggregate<TInput, TResult>(IEnumerable<TInput> inputs, Func<TInput, Task<TResult>> taskFactory)
         {
@@ -354,6 +375,8 @@ namespace LibDTO.Generic
         #region Coordination
         public async Task<bool> StartCoordinatorActivity()
         {
+            bool result = false;
+
             try
             {
                 log.Info("Invoked StartCoordinatorActivity");
@@ -369,8 +392,22 @@ namespace LibDTO.Generic
                 clusterNodesTimer.Start();
 
                 //inform the middleware of the new coordinator
+                _ = Task.Run(async () =>
+                {
+                    while (middlewareGrpcClient == null)
+                        await Task.Delay(5000);
 
-                return true;
+                    await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        middlewareGrpcClient.NotifyClusterCoordinator(new NotifyClusterCoordinatorRequest()
+                        {
+                            ClusterType = ClusterType.DayRateCluster,
+                            CoordinatorEndpoint = $"http://{machineIP}:80" //supposing that the port is static!
+                        });
+                    });
+                });
+
+                result = true;
             }
             catch (Exception ex)
             {
@@ -381,7 +418,7 @@ namespace LibDTO.Generic
                 currentClusterCoordinatorSem.Release();
             }
 
-            return false;
+            return result;
         }
 
         /// <summary>
@@ -476,6 +513,11 @@ namespace LibDTO.Generic
                 return this.machineIP;
             else
                 return currentClusterCoordinatorIp;
+        }
+
+        public string GetRequestId(string requestId)
+        {
+            return requestId.Split("@")[1];
         }
     }
 }

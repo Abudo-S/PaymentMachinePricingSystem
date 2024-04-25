@@ -137,31 +137,26 @@ message CalculateDayFeeRequest {
 
 //STR Responses
 message UpsertDayRateResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
+  GenericMessages.OperationResult Result = 1;
 }
 
 message GetDayRateResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
-  DayRateType DayRate = 3;
+  GenericMessages.OperationResult Result = 1;
+  DayRateType DayRate = 2;
 }
 
 message GetDayRatesResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
-  repeated DayRateType DayRate = 3;
+  GenericMessages.OperationResult Result = 1;
+  repeated DayRateType DayRate = 2;
 }
 
 message DeleteDayRateResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
+  GenericMessages.OperationResult Result = 1;
 }
 
 message CalculateDayFeeResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
-  double Fee = 3;
+  GenericMessages.OperationResult Result = 1;
+  double Fee = 2;
 }
 
 message DayRateType {

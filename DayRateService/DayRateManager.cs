@@ -10,6 +10,7 @@ using Microsoft.AspNetCore.Authentication;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Text.Json;
 using System.Timers;
 using static Google.Rpc.Context.AttributeContext.Types;
 
@@ -43,7 +44,7 @@ namespace DayRateService
             currentClusterCoordinatorSem = new SemaphoreSlim(1, 1);
         }
 
-        public override async void AskForPendingRequests()
+        public override async Task AskForPendingRequests()
         {
             try
             {
@@ -53,7 +54,7 @@ namespace DayRateService
                 {
                     return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                     {
-                        var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                        var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
                         return KeyValuePair.Create(
                             otherClusterNode,
                             ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).GetNotifiedRequests(new GenericMessages.GetNotifiedRequestsRequest()
@@ -87,7 +88,7 @@ namespace DayRateService
                 {
                     return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                     {
-                        var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                        var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
                         return KeyValuePair.Create(
                             otherClusterNode,
                             ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).NotifyHandledRequest(new GenericMessages.NotifyHandledRequestMsg()
@@ -138,7 +139,7 @@ namespace DayRateService
                 {
                     var result = grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                                  {
-                                     var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(currentClusterCoordinatorIp);
+                                     var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(currentClusterCoordinatorIp);
                                      return ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).CanIHandle(new GenericMessages.CanIHandleRequest()
                                      {
                                          RequestId = requestId,
@@ -174,11 +175,11 @@ namespace DayRateService
                 //apply delay
                 await Task.Delay(delayInMilliseconds * 1000);
 
-                await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
+                var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
                     var dbDayRate = await ((DayRateDbService)dbService).GetAsync(dayRate.Id);
 
-                    if (dbDayRate == null) //create operation
+                    if (dbDayRate == null) //create
                     {
                         result = await ((DayRateDbService)dbService).CreateAsync(dayRate);
                     }
@@ -186,20 +187,38 @@ namespace DayRateService
                     {
                         result = await ((DayRateDbService)dbService).UpdateAsync(dayRate.Id, dayRate);
                     }
+
+                    return result;
                     
                 });
 
-                await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
                     //build return/result elaborated message request to the middleware through grpc
+                    return middlewareGrpcClient.NotifyProcessedRequest(new MiddlewareProtos.NotifyProcessedRequestMessage()
+                    {
+                        RequestId = GetRequestId(requestId),
+                        ResponseType = nameof(UpsertDayRateResponse),
+                        ResponseJson = JsonSerializer.Serialize(new UpsertDayRateResponse()
+                        {
+                            Result = new OperationResult()
+                            {
+                                RequestId = GetRequestId(requestId),
+                                Elaborated = res
+                            }
+                        })
+
+                    });
                 });
 
-                await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                //if Result = true, delete request Id from cache
+                if (response.Result)
                 {
-                    //if awk = true, delete request Id from cache
-                    _ = cache.RemoveAsync(requestId);
-                });
-
+                    await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        _ = cache.RemoveAsync(requestId);
+                    });
+                }
             }
             catch(Exception ex)
             {
@@ -218,22 +237,39 @@ namespace DayRateService
                 //apply delay
                 await Task.Delay(delayInMilliseconds * 1000);
 
-                await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
+                var dbDayRate = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
-                    var dbDayRate = await ((DayRateDbService)dbService).GetAsync(id.ToString());
-
+                    return await ((DayRateDbService)dbService).GetAsync(id.ToString());
                 });
 
-                await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
                     //build return/result elaborated message request to the middleware through grpc
+                    return middlewareGrpcClient.NotifyProcessedRequest(new MiddlewareProtos.NotifyProcessedRequestMessage()
+                    {
+                        RequestId = GetRequestId(requestId),
+                        ResponseType = nameof(GetDayRateResponse),
+                        ResponseJson = JsonSerializer.Serialize(new GetDayRateResponse()
+                        {
+                            Result = new OperationResult()
+                            {
+                                RequestId = GetRequestId(requestId),
+                                Elaborated = (dbDayRate != null)
+                            },
+                            DayRate = (dbDayRate != null)? mapper.Map<DayRateType>(dbDayRate) : null
+                        })
+
+                    });
                 });
 
-                await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                //if Result = true, delete request Id from cache
+                if (response.Result)
                 {
-                    //if awk = true, delete request Id from cache
-                    _ = cache.RemoveAsync(requestId);
-                });
+                    await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        _ = cache.RemoveAsync(requestId);
+                    });
+                }
 
             }
             catch (Exception ex)
@@ -251,21 +287,43 @@ namespace DayRateService
                 //apply delay
                 await Task.Delay(delayInMilliseconds * 1000);
 
-                await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
+                var dayRates = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
-                    var dbDayRates = await ((DayRateDbService)dbService).GetAllAsync();
+                    return await ((DayRateDbService)dbService).GetAllAsync();
                 });
 
-                await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                var getDayRatesResponse = new GetDayRatesResponse()
+                {
+                    Result = new OperationResult()
+                    {
+                        RequestId = GetRequestId(requestId),
+                        Elaborated = (dayRates != null)
+                    }
+                };
+
+                if(dayRates != null) 
+                    dayRates.ForEach(dbDayRate => mapper.Map<DayRateType>(dbDayRate));
+
+                var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
                     //build return/result elaborated message request to the middleware through grpc
+                    return middlewareGrpcClient.NotifyProcessedRequest(new MiddlewareProtos.NotifyProcessedRequestMessage()
+                    {
+                        RequestId = GetRequestId(requestId),
+                        ResponseType = nameof(GetDayRatesResponse),
+                        ResponseJson = JsonSerializer.Serialize(getDayRatesResponse)
+
+                    });
                 });
 
-                await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                //if Result = true, delete request Id from cache
+                if (response.Result)
                 {
-                    //if awk = true, delete request Id from cache
-                    _ = cache.RemoveAsync(requestId);
-                });
+                    await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        _ = cache.RemoveAsync(requestId);
+                    });
+                }
             }
             catch (Exception ex)
             {
@@ -282,21 +340,38 @@ namespace DayRateService
                 //apply delay
                 await Task.Delay(delayInMilliseconds * 1000);
 
-                await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
+                var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
-                    result = await ((DayRateDbService)dbService).RemoveAsync(id.ToString());
+                    return await ((DayRateDbService)dbService).RemoveAsync(id.ToString());
                 });
 
-                await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
                     //build return/result elaborated message request to the middleware through grpc
+                    return middlewareGrpcClient.NotifyProcessedRequest(new MiddlewareProtos.NotifyProcessedRequestMessage()
+                    {
+                        RequestId = GetRequestId(requestId),
+                        ResponseType = nameof(DeleteDayRateResponse),
+                        ResponseJson = JsonSerializer.Serialize(new DeleteDayRateResponse()
+                        {
+                            Result = new OperationResult()
+                            {
+                                RequestId = GetRequestId(requestId),
+                                Elaborated = res
+                            }
+                        })
+
+                    });
                 });
 
-                await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                //if Result = true, delete request Id from cache
+                if (response.Result)
                 {
-                    //if awk = true, delete request Id from cache
-                    _ = cache.RemoveAsync(requestId);
-                });
+                    await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        _ = cache.RemoveAsync(requestId);
+                    });
+                }
             }
             catch (Exception ex)
             {
@@ -386,7 +461,7 @@ namespace DayRateService
                         //should exclude RpcException with StatusCode.DeadlineExceeded
                         return await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                         {
-                            var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(higherClusterNode);
+                            var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(higherClusterNode);
                             return KeyValuePair.Create(
                                 higherClusterNode,
                                 ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).CanICoordinate(new CanICoordinateRequest()
@@ -434,7 +509,7 @@ namespace DayRateService
                         //should exclude RpcException with StatusCode.DeadlineExceeded
                         return await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                         {
-                            var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                            var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
                             return KeyValuePair.Create(
                                 otherClusterNode,
                                 ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).IsAlive(new GenericMessages.IsAliveRequest
@@ -478,7 +553,7 @@ namespace DayRateService
                     {
                         return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                         {
-                            var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                            var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
                             return KeyValuePair.Create(
                                 otherClusterNode,
                                 ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).GetCoordinatorIp(new GenericMessages.GetCoordinatorIpRequest
@@ -554,7 +629,7 @@ namespace DayRateService
                         {
                             return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                             {
-                                var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                                var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
                                 return KeyValuePair.Create(
                                     otherClusterNode,
                                     ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).AddClusterNode(new GenericMessages.AddOrRemoveClusterNodeRequest()
@@ -597,7 +672,7 @@ namespace DayRateService
                         {
                             return grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                             {
-                                var clusterNodeClient = GrpcClientInitializer.Instance.GetClusterNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
+                                var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(otherClusterNode);
                                 return KeyValuePair.Create(
                                     otherClusterNode,
                                     ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).RemoveClusterNode(new GenericMessages.AddOrRemoveClusterNodeRequest()
