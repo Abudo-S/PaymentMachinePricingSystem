@@ -173,7 +173,7 @@ namespace DayRateService
                 log.Info($"Invoked UpsertDayRate with id {dayRate.Id}");
 
                 //apply delay
-                await Task.Delay(delayInMilliseconds * 1000);
+                await Task.Delay(delayInMilliseconds);
 
                 var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -218,6 +218,8 @@ namespace DayRateService
                     {
                         _ = cache.RemoveAsync(requestId);
                     });
+
+                    log.Info($"");
                 }
             }
             catch(Exception ex)
@@ -235,7 +237,7 @@ namespace DayRateService
                 log.Info($"Invoked GetDayRate with id: {id}");
 
                 //apply delay
-                await Task.Delay(delayInMilliseconds * 1000);
+                await Task.Delay(delayInMilliseconds);
 
                 var dbDayRate = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -285,7 +287,7 @@ namespace DayRateService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds * 1000);
+                await Task.Delay(delayInMilliseconds);
 
                 var dayRates = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -338,7 +340,7 @@ namespace DayRateService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds * 1000);
+                await Task.Delay(delayInMilliseconds);
 
                 var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -396,7 +398,7 @@ namespace DayRateService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds * 1000);
+                await Task.Delay(delayInMilliseconds);
 
                 //to be implemented
 

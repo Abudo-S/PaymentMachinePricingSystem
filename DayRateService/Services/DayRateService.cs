@@ -29,12 +29,12 @@ namespace DayRateService.Services
             try
             {
                 log.Info($"Invoked UpsertDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.DayRate.Id}");
-
-                //async without waiting
-                Task.Run(() => DayRateManager.Instance.UpsertDayRate(request.RequestCamp.RequestId, mapper.Map<LibDTO.DayRate>(request.DayRate), request.RequestCamp.RequiredDelay));
-
+                
                 //essential for request handling through reflection
                 string requestId = nameof(UpsertDayRateRequest) + "@" + request.RequestCamp.RequestId;
+
+                //async without waiting
+                Task.Run(() => DayRateManager.Instance.UpsertDayRate(requestId, mapper.Map<LibDTO.DayRate>(request.DayRate), request.RequestCamp.RequiredDelay));
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -59,11 +59,11 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked GetDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
-                //async without waiting
-                Task.Run(() => DayRateManager.Instance.GetDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay));
-                
                 //essential for request handling through reflection
                 string requestId = nameof(GetDayRateRequest) + "@" + request.RequestCamp.RequestId;
+
+                //async without waiting
+                Task.Run(() => DayRateManager.Instance.GetDayRate(requestId, request.Id, request.RequestCamp.RequiredDelay));
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -88,11 +88,11 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked GetDayRates with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
-                //async without waiting
-                Task.Run(() => DayRateManager.Instance.GetDayRates(request.RequestCamp.RequestId, request.RequestCamp.RequiredDelay));
-
                 //essential for request handling through reflection
                 string requestId = nameof(GetDayRatesRequest) + "@" + request.RequestCamp.RequestId;
+
+                //async without waiting
+                Task.Run(() => DayRateManager.Instance.GetDayRates(requestId, request.RequestCamp.RequiredDelay));
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -117,11 +117,11 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked DeleteDayRate with RequestCamp.RequestId: {request.RequestCamp.RequestId}, DayRateId: {request.Id}");
 
-                //async without waiting
-                Task.Run(() => DayRateManager.Instance.DeleteDayRate(request.RequestCamp.RequestId, request.Id, request.RequestCamp.RequiredDelay));
-
                 //essential for request handling through reflection
-                string requestId = nameof(DeleteDayRateRequest) + "@" + request.RequestCamp.RequestId;
+                string requestId = nameof(GetDayRateRequest) + "@" + request.RequestCamp.RequestId;
+
+                //async without waiting
+                Task.Run(() => DayRateManager.Instance.DeleteDayRate(requestId, request.Id, request.RequestCamp.RequiredDelay));
 
                 return Task.FromResult(new AsyncResult
                 {
@@ -146,15 +146,15 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked CalculateDayFee with RequestCamp.RequestId: {request.RequestCamp.RequestId}");
 
+                //essential for request handling through reflection
+                string requestId = nameof(CalculateDayFeeRequest) + "@" + request.RequestCamp.RequestId;
+
                 //async without waiting
-                Task.Run(() => DayRateManager.Instance.CalculateDayFee(request.RequestCamp.RequestId,
+                Task.Run(() => DayRateManager.Instance.CalculateDayFee(requestId,
                                 TimeSpan.FromSeconds(request.Start),
                                 TimeSpan.FromSeconds(request.End),
                                 request.RequestCamp.RequiredDelay)
                 );
-
-                //essential for request handling through reflection
-                string requestId = nameof(CalculateDayFeeRequest) + "@" + request.RequestCamp.RequestId;
 
                 return Task.FromResult(new AsyncResult
                 {
