@@ -112,6 +112,27 @@ services:
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
        - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
 
+  DumbPaymentMachine:
+    container_name: ${DOCKER_REGISTRY-}dumbpaymentmachine
+    image: dumbpaymentmachine
+    restart: always
+    build:
+      context: .
+      dockerfile: ./DumbPaymentMachine/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
+    ports:
+      - "5000:80"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.100
+    volumes:
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+
 #first we need to execute: docker network create --driver=bridge --subnet=172.18.0.0/24 paymentMachinePricingSystem_network
 networks:
   paymentMachinePricingSystem_network:

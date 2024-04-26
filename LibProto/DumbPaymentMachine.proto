@@ -7,11 +7,11 @@ package PaymentMachineProtos;
 
 //just interface to create grpc client
 //dumb payment machine, just to receive responses
-service PaymentMachine {
+service DumbPaymentMachine {
   rpc ReceiveResponse (ReceiveResponseMsg) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {
-      post: "/HttpAPI/PaymentMachineProtos/PaymentMachine"
+      post: "/HttpAPI/PaymentMachineProtos/DumbPaymentMachine/ReceiveResponse"
       body: "*"
     };
   }

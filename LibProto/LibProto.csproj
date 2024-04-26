@@ -8,7 +8,7 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <None Remove="PaymentMachine.proto" />
+    <None Remove="DumbPaymentMachine.proto" />
   </ItemGroup>
 
   <ItemGroup>
@@ -48,7 +48,7 @@
 	    <Protobuf Include="DayRate.proto" GrpcServices="Both" ProtoCompile="true" />
 	    <Protobuf Include="RequestHandler.proto" GrpcServices="Both" ProtoCompile="true" />
 	    <Protobuf Include="GenericMessages.proto" GrpcServices="Both" ProtoCompile="true" />
-	    <Protobuf Include="PaymentMachine.proto" GrpcServices="Both" ProtoCompile="true" />
+	    <Protobuf Include="DumbPaymentMachine.proto" GrpcServices="Both" ProtoCompile="true" />
 	    <Protobuf Include="TimeInterval.proto" GrpcServices="Both" ProtoCompile="true" />
 	    <Protobuf Include="Authentication.proto" GrpcServices="Both" ProtoCompile="true" />
 	    <Protobuf Include="WeekPayModel.proto" GrpcServices="Both" ProtoCompile="true" />

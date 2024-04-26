@@ -11,7 +11,6 @@ using AutoMapper;
 
 namespace DayRateService.Services
 {
-    [ActionInterceptor]
     public class DayRateService : DayRate.DayRateBase
     {
         private static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
