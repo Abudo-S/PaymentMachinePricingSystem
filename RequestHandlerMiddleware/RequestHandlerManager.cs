@@ -153,7 +153,7 @@ namespace RequestHandlerMiddleware
             });
 
             //persist in case of unacknowledgement
-            if (!response.Awk)
+            if (response == null || !response.Awk)
             {
                 ThreadPool.QueueUserWorkItem(async (object? state) => await HandleUpsertDayRate(request));
             }
@@ -173,7 +173,7 @@ namespace RequestHandlerMiddleware
             });
 
             //persist in case of unacknowledgement
-            if (!response.Awk)
+            if (response == null || !response.Awk)
             {
                 ThreadPool.QueueUserWorkItem(async (object? state) => await HandleGetDayRate(request));
             }
@@ -195,7 +195,7 @@ namespace RequestHandlerMiddleware
             });
 
             //persist in case of unacknowledgement
-            if (!response.Awk)
+            if (response == null || !response.Awk)
             {
                 ThreadPool.QueueUserWorkItem(async (object? state) => await HandleGetDayRates(request));
             }
@@ -217,7 +217,7 @@ namespace RequestHandlerMiddleware
             });
 
             //persist in case of unacknowledgement
-            if (!response.Awk)
+            if (response == null || !response.Awk)
             {
                 ThreadPool.QueueUserWorkItem(async (object? state) => await HandleDeleteDayRate(request));
             }

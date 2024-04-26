@@ -28,6 +28,27 @@ services:
     volumes:
       - /dayrateservice_redis/conf:/usr/local/etc/redis
 
+  RequestHandlerMiddleware:
+    container_name: ${DOCKER_REGISTRY-}requesthandlermiddleware
+    image: requesthandlermiddleware
+    restart: always
+    build:
+      context: .
+      dockerfile: ./RequestHandlerMiddleware/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
+    ports:
+      - "5000:80"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.4
+    volumes:
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+ 
   DayRateService:
     container_name: ${DOCKER_REGISTRY-}dayrateservice
     image: dayrateservice
@@ -43,7 +64,7 @@ services:
       - "8000:80"
     networks:
       paymentMachinePricingSystem_network:
-        ipv4_address: 172.18.0.4
+        ipv4_address: 172.18.0.5
     volumes:
        - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
@@ -64,7 +85,7 @@ services:
       - "7000:80"
     networks:
       paymentMachinePricingSystem_network:
-        ipv4_address: 172.18.0.5
+        ipv4_address: 172.18.0.6
     volumes:
        - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
@@ -85,7 +106,7 @@ services:
       - "9000:80"
     networks:
       paymentMachinePricingSystem_network:
-        ipv4_address: 172.18.0.6
+        ipv4_address: 172.18.0.7
     volumes:
        - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
