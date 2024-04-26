@@ -5,6 +5,7 @@ using Grpc.Core;
 using LibDTO.Enum;
 using LibHelpers;
 using MiddlewareProtos;
+using static Google.Rpc.Context.AttributeContext.Types;
 
 namespace RequestHandlerMiddleware.Services
 {
@@ -48,7 +49,12 @@ namespace RequestHandlerMiddleware.Services
             {
                 log.Info($"Invoked NotifyProcessedRequest with RequestId: {request.RequestId}, ResponseType: {request.ResponseType}");
 
-                RequestHandlerManager.Instance.SendPaymentMachineResponse(request.RequestId, request.ResponseType, request.ResponseJson);
+                ThreadPool.QueueUserWorkItem(async (object? state) =>
+                    await RequestHandlerManager.Instance.SendPaymentMachineResponse(request.RequestId,
+                        request.ResponseType,
+                        request.ResponseJson
+                    )
+                );
 
                 return Task.FromResult(new SyncResult
                 {

@@ -36,7 +36,7 @@ namespace RequestHandlerMiddleware
             clusterCoordinators = new ();
             clusterCoordinatorsSem = new SemaphoreSlim(1, 1);
 
-            //for local request persistency
+            //for local request persistency (cluster side or payment machine side)
             ThreadPool.SetMaxThreads(5, 5);
 
             InitPollyCircuitRetryPolicy();
@@ -88,18 +88,41 @@ namespace RequestHandlerMiddleware
             }
         }
 
-        public void SendPaymentMachineResponse(string requestId, string requestType, string responseJson)
+        /// <summary>
+        /// client's endpoint should be encoded in requestId
+        /// persist on sending client response
+        /// </summary>
+        /// <param name="requestId"></param>
+        /// <param name="requestType"></param>
+        /// <param name="responseJson"></param>
+        public async Task SendPaymentMachineResponse(string requestId, string requestType, string responseJson)
         {
             try
             {
                 var kvp = GetSenderEPAndRequestId(requestId);
-                //var paymentMachineClient = GrpcClientInitializer.Instance.GetNodeClient<PaymentMachine.PaymentMachineClient>(kvp.Key);
-                
-                //paymentMachineClient.ReceiveResponse();
+                var paymentMachineClient = (DumbPaymentMachine.DumbPaymentMachineClient)GrpcClientInitializer.Instance.GetNodeClient<DumbPaymentMachine.DumbPaymentMachineClient>(kvp.Key);
+
+                var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                {
+                    var res = paymentMachineClient.ReceiveResponse(new ReceiveResponseMsg()
+                    {
+                        RequestId = requestId,
+                        ResultType = requestType,
+                        ResultJson = responseJson
+                    });
+
+                    return res;
+                });
+
+                //persist in case of unacknowledgement
+                if (response == null || !response.Result)
+                {
+                    ThreadPool.QueueUserWorkItem(async (object? state) => await SendPaymentMachineResponse(requestId, requestType, responseJson));
+                }
             }
             catch (Exception ex)
             {
-                log.Error(ex, "In PrepareMachineGrpcClient()!");
+                log.Error(ex, "In SendPaymentMachineResponse()!");
             }
         }
 
