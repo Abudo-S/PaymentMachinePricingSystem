@@ -1,6 +1,6 @@
 #To overcome dependencyLib directory error, just run dockerfile from partent directory through:
 #docker build . -t imageTag -f .\projFolder\Dockerfile
-#Sometimes you'll need to deleted cached builds from docker desktop
+#Sometimes you'll need to delete cached builds from docker desktop
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app

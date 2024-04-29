@@ -7,8 +7,10 @@ WORKDIR /src
 COPY ../RequestHandlerMiddleware/ RequestHandlerMiddleware/
 COPY ../LibDTO/ LibDTO/
 COPY ../LibProto/ LibProto/
+COPY ../LibHelpers/ LibHelpers/
 COPY ../RequestHandlerMiddleware/appsettings.json .
 
+RUN dotnet restore "./LibHelpers/LibHelpers.csproj"
 RUN dotnet restore "./LibDTO/LibDTO.csproj"
 RUN dotnet restore "./LibProto/LibProto.csproj"
 RUN dotnet restore "./RequestHandlerMiddleware/RequestHandlerMiddleware.csproj"

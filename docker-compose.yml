@@ -64,7 +64,7 @@ services:
       - ASPNETCORE_HTTP_PORTS=80
       - ASPNETCORE_URLS=http://+
     ports:
-      - "5000:80"
+      - "5500:80"
     networks:
       paymentMachinePricingSystem_network:
         ipv4_address: 172.18.0.6
@@ -199,6 +199,69 @@ services:
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
        - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
 
+  TimeIntervalService:
+    container_name: ${DOCKER_REGISTRY-}timeintervalservice
+    image: timeintervalservice
+    restart: always
+    build:
+      context: .
+      dockerfile: ./TimeIntervalService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
+    ports:
+      - "18000:8080"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.13
+    volumes:
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+
+  TimeIntervalService1:
+    container_name: ${DOCKER_REGISTRY-}timeintervalservice1
+    image: timeintervalservice
+    restart: always
+    build:
+      context: .
+      dockerfile: ./TimeIntervalService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
+    ports:
+      - "18100:8080"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.14
+    volumes:
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+       
+  TimeIntervalService2:
+    container_name: ${DOCKER_REGISTRY-}timeintervalservice2
+    image: timeintervalservice
+    restart: always
+    build:
+      context: .
+      dockerfile: ./TimeIntervalService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
+    ports:
+      - "18200:8080"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.15
+    volumes:
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+
   DumbPaymentMachine:
     container_name: ${DOCKER_REGISTRY-}dumbpaymentmachine
     image: dumbpaymentmachine
@@ -219,28 +282,6 @@ services:
        - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
        - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
-
-  
-  # TimeIntervalService:
-  #   image: ${DOCKER_REGISTRY-}timeintervalservice
-  #   container_name: TimeIntervalServiceContainer
-  #   build:
-  #     context: .
-  #     dockerfile: TimeIntervalService/Dockerfile
-
-  # TimeIntervalService1:
-  #   image: ${DOCKER_REGISTRY-}timeintervalservice
-  #   container_name: TimeIntervalServiceContainer
-  #   build:
-  #     context: .
-  #     dockerfile: TimeIntervalService/Dockerfile
-
-  # TimeIntervalService2:
-  #   image: ${DOCKER_REGISTRY-}timeintervalservice
-  #   container_name: TimeIntervalServiceContainer
-  #   build:
-  #     context: .
-  #     dockerfile: TimeIntervalService/Dockerfile
 
 #first we need to execute: docker network create --driver=bridge --subnet=172.18.0.0/24 paymentMachinePricingSystem_network
 networks:
