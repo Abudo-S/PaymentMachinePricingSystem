@@ -402,10 +402,34 @@ namespace DayRateService
 
                 //to be implemented
 
-                //build return elaborated message request to the middleware through grpc
+                var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                {
+                    //build return/result elaborated message request to the middleware through grpc
+                    return middlewareGrpcClient.NotifyProcessedRequest(new MiddlewareProtos.NotifyProcessedRequestMessage()
+                    {
+                        RequestId = GetRequestId(requestId),
+                        ResponseType = nameof(DeleteWeekPayModelResponse),
+                        ResponseJson = JsonSerializer.Serialize(new CalculateDayFeeResponse()
+                        {
+                            Result = new OperationResult()
+                            {
+                                RequestId = GetRequestId(requestId),
+                                Elaborated = true
+                            },
+                            Fee = 1
+                        })
 
-                //if awk = true, delete request Id from cache
-                cache.RemoveAsync(requestId);
+                    });
+                });
+
+                //if Result = true, delete request Id from cache
+                if (response.Result)
+                {
+                    await redisCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        _ = cache.RemoveAsync(requestId);
+                    });
+                }
             }
             catch (Exception ex)
             {
