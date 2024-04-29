@@ -8,7 +8,7 @@ services:
     environment:
       MONGO_INITDB_DATABASE: PricingSystemDB
     ports:
-      - "5003:6379"
+      - "5001:6379"
     networks:
       paymentMachinePricingSystem_network:
         ipv4_address: 172.18.0.2
@@ -17,7 +17,7 @@ services:
     command: ["mongod", "--port", "6379"]
 
   redis:
-    container_name: dayrateservice_redis
+    container_name: weekpaymodelservice_redis
     image: redis
     restart: always
     ports:
@@ -26,7 +26,31 @@ services:
       paymentMachinePricingSystem_network:
         ipv4_address: 172.18.0.3
     volumes:
+      - /weekpaymodelservice_redis/conf:/usr/local/etc/redis
+
+  redis1:
+    container_name: dayrateservice_redis
+    image: redis
+    restart: always
+    ports:
+      - "5003:6379"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.4
+    volumes:
       - /dayrateservice_redis/conf:/usr/local/etc/redis
+ 
+  redis2:
+    container_name: timeintervalservice_redis
+    image: redis
+    restart: always
+    ports:
+      - "5004:6379"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.5
+    volumes:
+      - /timeintervalservice_redis/conf:/usr/local/etc/redis
 
   RequestHandlerMiddleware:
     container_name: ${DOCKER_REGISTRY-}requesthandlermiddleware
@@ -43,12 +67,75 @@ services:
       - "5000:80"
     networks:
       paymentMachinePricingSystem_network:
-        ipv4_address: 172.18.0.4
+        ipv4_address: 172.18.0.6
     volumes:
        - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
        - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
  
+  WeekPayModelService:
+    container_name: ${DOCKER_REGISTRY-}weekpaymodelservice
+    image: weekpaymodelservice
+    restart: always
+    build:
+      context: .
+      dockerfile: ./WeekPayModelService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
+    ports:
+      - "6000:80"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.7
+    volumes:
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+
+  WeekPayModelService1:
+    container_name: ${DOCKER_REGISTRY-}weekpaymodelservice1
+    image: weekpaymodelservice
+    restart: always
+    build:
+      context: .
+      dockerfile: ./WeekPayModelService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
+    ports:
+      - "7000:80"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.8
+    volumes:
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+  
+  WeekPayModelService2:
+    container_name: ${DOCKER_REGISTRY-}weekpaymodelservice2
+    image: weekpaymodelservice
+    restart: always
+    build:
+      context: .
+      dockerfile: ./WeekPayModelService/Dockerfile
+    environment:
+      - ASPNETCORE_ENVIORNMENT=Development
+      - ASPNETCORE_HTTP_PORTS=80
+      - ASPNETCORE_URLS=http://+
+    ports:
+      - "8000:80"
+    networks:
+      paymentMachinePricingSystem_network:
+        ipv4_address: 172.18.0.9
+    volumes:
+       - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
+       - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
+       - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+
   DayRateService:
     container_name: ${DOCKER_REGISTRY-}dayrateservice
     image: dayrateservice
@@ -61,10 +148,10 @@ services:
       - ASPNETCORE_HTTP_PORTS=80
       - ASPNETCORE_URLS=http://+
     ports:
-      - "8000:80"
+      - "9000:80"
     networks:
       paymentMachinePricingSystem_network:
-        ipv4_address: 172.18.0.5
+        ipv4_address: 172.18.0.10
     volumes:
        - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
@@ -82,10 +169,10 @@ services:
       - ASPNETCORE_HTTP_PORTS=80
       - ASPNETCORE_URLS=http://+
     ports:
-      - "7000:80"
+      - "10000:80"
     networks:
       paymentMachinePricingSystem_network:
-        ipv4_address: 172.18.0.6
+        ipv4_address: 172.18.0.11
     volumes:
        - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
@@ -103,10 +190,10 @@ services:
       - ASPNETCORE_HTTP_PORTS=80
       - ASPNETCORE_URLS=http://+
     ports:
-      - "9000:80"
+      - "11000:80"
     networks:
       paymentMachinePricingSystem_network:
-        ipv4_address: 172.18.0.7
+        ipv4_address: 172.18.0.12
     volumes:
        - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
@@ -124,7 +211,7 @@ services:
       - ASPNETCORE_HTTP_PORTS=80
       - ASPNETCORE_URLS=http://+
     ports:
-      - "5000:80"
+      - "27000:80"
     networks:
       paymentMachinePricingSystem_network:
         ipv4_address: 172.18.0.100
@@ -132,6 +219,28 @@ services:
        - ${APPDATA}/Microsoft/UserSecrets:/root/.microsoft/usersecrets.ro
        - ${APPDATA}/ASP.NET/HTTPS:/root/.aspnet/https:ro
        - ${APPDATA}/ASP.NET/HTTP:/root/.aspnet/http:ro
+
+  
+  # TimeIntervalService:
+  #   image: ${DOCKER_REGISTRY-}timeintervalservice
+  #   container_name: TimeIntervalServiceContainer
+  #   build:
+  #     context: .
+  #     dockerfile: TimeIntervalService/Dockerfile
+
+  # TimeIntervalService1:
+  #   image: ${DOCKER_REGISTRY-}timeintervalservice
+  #   container_name: TimeIntervalServiceContainer
+  #   build:
+  #     context: .
+  #     dockerfile: TimeIntervalService/Dockerfile
+
+  # TimeIntervalService2:
+  #   image: ${DOCKER_REGISTRY-}timeintervalservice
+  #   container_name: TimeIntervalServiceContainer
+  #   build:
+  #     context: .
+  #     dockerfile: TimeIntervalService/Dockerfile
 
 #first we need to execute: docker network create --driver=bridge --subnet=172.18.0.0/24 paymentMachinePricingSystem_network
 networks:
@@ -142,17 +251,3 @@ networks:
     #   config:
     #     - subnet: 172.18.0.0/16
     #       gateway: 172.18.0.1
-
-  # WeekPayModelService:
-  #   image: ${DOCKER_REGISTRY-}WeekPayModelService
-  #   container_name: WeekPayModelServiceContainer
-  #   build:
-  #     context: .
-  #     dockerfile: WeekPayModelService/Dockerfile
-
-  # TimeIntervalService:
-  #   image: ${DOCKER_REGISTRY-}TimeIntervalService
-  #   container_name: TimeIntervalServiceContainer
-  #   build:
-  #     context: .
-  #     dockerfile: TimeIntervalService/Dockerfile

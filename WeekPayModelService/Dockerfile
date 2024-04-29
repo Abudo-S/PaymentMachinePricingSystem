@@ -4,15 +4,18 @@
 
 FROM mcr.microsoft.com/dotnet/aspnet:8.0 AS base
 WORKDIR /app
-EXPOSE 8000
-EXPOSE 8001
+EXPOSE 8080
 
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 COPY ../WeekPayModelService/ WeekPayModelService/
 COPY ../LibDTO/ LibDTO/
 COPY ../LibProto/ LibProto/
+COPY ../LibHelpers/ LibHelpers/
+COPY ../WeekPayModelService/appsettings.json .
 
+
+RUN dotnet restore "./LibHelpers/LibHelpers.csproj"
 RUN dotnet restore "./LibDTO/LibDTO.csproj"
 RUN dotnet restore "./LibProto/LibProto.csproj"
 RUN dotnet restore "./WeekPayModelService/WeekPayModelService.csproj"
@@ -20,7 +23,7 @@ RUN dotnet restore "./WeekPayModelService/WeekPayModelService.csproj"
 RUN dotnet build "./WeekPayModelService/WeekPayModelService.csproj" -c Debug -o /app/build
 
 FROM build AS publish
-RUN dotnet publish "./WeekPayModelService/WeekPayModelService.csproj" -c Release -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "./WeekPayModelService/WeekPayModelService.csproj" -c Release -o /app/publish
 
 FROM base AS final
 WORKDIR /app
