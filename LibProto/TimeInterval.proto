@@ -43,6 +43,62 @@ service TimeInterval {
       body: "*"
     };
   }
+  rpc NotifyHandledRequest (GenericMessages.NotifyHandledRequestMsg) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/NotifyHandledRequest"
+      body: "*"
+    };
+  }
+  rpc GetNotifiedRequests (GenericMessages.GetNotifiedRequestsRequest) returns (GenericMessages.GetNotifiedRequestsResponse)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/GetNotifiedRequests"
+      body: "*"
+    };
+  }
+  rpc CanIHandle (GenericMessages.CanIHandleRequest) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/CanIHandle"
+      body: "*"
+    };
+  }
+  rpc CanICoordinate (GenericMessages.CanICoordinateRequest) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/CanICoordinate"
+      body: "*"
+    };
+  }
+  rpc ConsiderNodeCoordinator (GenericMessages.ConsiderNodeCoordinatorRequest) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/ConsiderNodeCoordinator"
+      body: "*"
+    };
+  }
+  rpc GetCoordinatorIp (GenericMessages.GetCoordinatorIpRequest) returns (GenericMessages.GetCoordinatorIpResponse)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/GetCoordinatorIp"
+      body: "*"
+    };
+  }
+  rpc AddClusterNode (GenericMessages.AddOrRemoveClusterNodeRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/AddClusterNode"
+      body: "*"
+    };
+  }
+  rpc RemoveClusterNode (GenericMessages.AddOrRemoveClusterNodeRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/RemoveClusterNode"
+      body: "*"
+    };
+  }
   rpc IsAlive (GenericMessages.IsAliveRequest) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {
@@ -81,38 +137,33 @@ message CalculateTimeIntervalFeeRequest {
 
 //STR Responses
 message UpsertTimeIntervalResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
+  GenericMessages.OperationResult Result = 1;
   TimeIntervalType TimeInterval = 3;
 }
 
 message GetTimeIntervalResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
-  TimeIntervalType TimeInterval = 3;
+  GenericMessages.OperationResult Result = 1;
+  TimeIntervalType TimeInterval = 2;
 }
 
 message GetTimeIntervalsResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
-  repeated TimeIntervalType TimeInterval = 3;
+  GenericMessages.OperationResult Result = 1;
+  repeated TimeIntervalType TimeInterval = 2;
 }
 
 message DeleteTimeIntervalResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
+  GenericMessages.OperationResult Result = 1;
 }
 
 message CalculateTimeIntervalFeeResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
-  double Fee = 3;
+  GenericMessages.OperationResult Result = 1;
+  double Fee = 2;
 }
 
 message TimeIntervalType {
    int32 Id = 1;
-   double From = 2; //duration in seconds
-   double To = 3;  //duration in seconds
+   int64 From = 2; //duration in seconds
+   int64 To = 3;  //duration in seconds
    repeated TimeIntervalRuleType Rules = 4;
 }
 
