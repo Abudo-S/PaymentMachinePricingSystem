@@ -79,8 +79,8 @@ message NotifyProcessedRequestMessage {
 message CalculateFeeRequest {
     string RequestId = 1;
     string SenderEndpoint = 2;
-    double StartDateTime = 3; //OX time
-    double EndDateTime = 4; //OX time
+    double StartDateTime = 3; //OA time
+    double EndDateTime = 4; //OA time
 }
 
 //STR DayRate CRUD
