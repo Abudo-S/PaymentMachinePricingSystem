@@ -12,6 +12,10 @@ namespace LibDTO.Config
 
         public string DatabaseName { get; set; } = null!;
 
+        public string TimeIntervalCollectionName { get; set; } = null!;
+
         public string DayRateCollectionName { get; set; } = null!;
+
+        public string WeekPayModelCollectionName { get; set; } = null!;
     }
 }
