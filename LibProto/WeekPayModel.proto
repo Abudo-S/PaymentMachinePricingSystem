@@ -1,8 +1,8 @@
 syntax = "proto3";
 
 import "google/api/annotations.proto";
-import "google/protobuf/timestamp.proto";
-import "google/protobuf/duration.proto";
+//import "google/protobuf/timestamp.proto";
+//import "google/protobuf/duration.proto";
 import "GenericMessages.proto";
 
 package MicroservicesProtos;
@@ -36,10 +36,66 @@ service WeekPayModel {
       body: "*"
     };
   }
-  rpc CalculateWeekPayModelFee (CalculateWeekPayModelFeeRequest) returns (GenericMessages.AsyncResult)
+  rpc CalculateWeekFee (CalculateWeekFeeRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
-      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/CalculateWeekPayModelFee"
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/CalculateWeekFee"
+      body: "*"
+    };
+  }
+  rpc NotifyHandledRequest (GenericMessages.NotifyHandledRequestMsg) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/NotifyHandledRequest"
+      body: "*"
+    };
+  }
+  rpc GetNotifiedRequests (GenericMessages.GetNotifiedRequestsRequest) returns (GenericMessages.GetNotifiedRequestsResponse)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/GetNotifiedRequests"
+      body: "*"
+    };
+  }
+  rpc CanIHandle (GenericMessages.CanIHandleRequest) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/CanIHandle"
+      body: "*"
+    };
+  }
+  rpc CanICoordinate (GenericMessages.CanICoordinateRequest) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/CanICoordinate"
+      body: "*"
+    };
+  }
+  rpc ConsiderNodeCoordinator (GenericMessages.ConsiderNodeCoordinatorRequest) returns (GenericMessages.SyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/ConsiderNodeCoordinator"
+      body: "*"
+    };
+  }
+  rpc GetCoordinatorIp (GenericMessages.GetCoordinatorIpRequest) returns (GenericMessages.GetCoordinatorIpResponse)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/GetCoordinatorIp"
+      body: "*"
+    };
+  }
+  rpc AddClusterNode (GenericMessages.AddOrRemoveClusterNodeRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/AddClusterNode"
+      body: "*"
+    };
+  }
+  rpc RemoveClusterNode (GenericMessages.AddOrRemoveClusterNodeRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/RemoveClusterNode"
       body: "*"
     };
   }
@@ -72,41 +128,36 @@ message DeleteWeekPayModelRequest {
   int32 Id = 2;
 }
 
-message CalculateWeekPayModelFeeRequest {
+message CalculateWeekFeeRequest {
   GenericMessages.GenericRequestData RequestCamp = 1;
-  int64 Start = 2; //duration in seconds
-  int64 End = 3;  //duration in seconds
+  double Start = 2; //OA time
+  double End = 3;  //OA time
 }
 //END Requests
 
 //STR Responses
 message UpsertWeekPayModelResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
+  GenericMessages.OperationResult Result = 1;
   WeekPayModelType WeekPayModel = 3;
 }
 
 message GetWeekPayModelResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
-  WeekPayModelType WeekPayModel = 3;
+  GenericMessages.OperationResult Result = 1;
+  WeekPayModelType WeekPayModel = 2;
 }
 
 message GetWeekPayModelsResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
-  repeated WeekPayModelType WeekPayModel = 3;
+  GenericMessages.OperationResult Result = 1;
+  repeated WeekPayModelType WeekPayModel = 2;
 }
 
 message DeleteWeekPayModelResponse {
- GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
+  GenericMessages.OperationResult Result = 1;
 }
 
-message CalculateWeekPayModelFeeResponse {
-  GenericMessages.GenericRequestData RequestCamp = 1;
-  GenericMessages.OperationResult Result = 2;
-  double Fee = 3;
+message CalculateWeekFeeResponse {
+  GenericMessages.OperationResult Result = 1;
+  double Fee = 2;
 }
 
 message WeekPayModelType {
