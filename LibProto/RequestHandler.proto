@@ -34,6 +34,37 @@ service RequestHandler {
     };
   }
 
+  //WeekPayModel
+  rpc UpsertWeekPayModel (UpsertWeekPayModelRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/UpsertWeekPayModel"
+      body: "*"
+    };
+  }
+  rpc GetWeekPayModel (GetWeekPayModelRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/GetWeekPayModel"
+      body: "*"
+    };
+  }
+  rpc GetWeekPayModels (GetWeekPayModelsRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/GetWeekPayModels"
+      body: "*"
+    };
+  }
+  rpc DeleteWeekPayModel (DeleteWeekPayModelRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/DeleteWeekPayModel"
+      body: "*"
+    };
+  }
+
+  //DayRate
   rpc UpsertDayRate (UpsertDayRateRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
@@ -62,6 +93,36 @@ service RequestHandler {
       body: "*"
     };
   }
+
+  //TimeInterval
+  rpc UpsertTimeInterval (UpsertTimeIntervalRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/UpsertTimeInterval"
+      body: "*"
+    };
+  }
+  rpc GetTimeInterval (GetTimeIntervalRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/GetTimeInterval"
+      body: "*"
+    };
+  }
+  rpc GetTimeIntervals (GetTimeIntervalsRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/GetTimeIntervals"
+      body: "*"
+    };
+  }
+  rpc DeleteTimeInterval (DeleteTimeIntervalRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MiddlewareProtos/RequestHandler/DeleteTimeInterval"
+      body: "*"
+    };
+  }
 }
 
 //STR Requests
@@ -82,6 +143,31 @@ message CalculateFeeRequest {
     double StartDateTime = 3; //OA time
     double EndDateTime = 4; //OA time
 }
+
+//STR WeekPayModel CRUD
+message UpsertWeekPayModelRequest {
+  string RequestId = 1; //essential to remap responses to relative client request
+  string SenderEndpoint = 2;
+  MicroservicesProtos.WeekPayModelType WeekPayModel = 3;
+}
+
+message GetWeekPayModelRequest {
+  string RequestId = 1;
+  string SenderEndpoint = 2;
+  int32 Id = 3;
+}
+
+message GetWeekPayModelsRequest {
+  string RequestId = 1;
+  string SenderEndpoint = 2;
+}
+
+message DeleteWeekPayModelRequest {
+  string RequestId = 1;
+  string SenderEndpoint = 2;
+  int32 Id = 3;
+}
+//END WeekPayModel CRUD
 
 //STR DayRate CRUD
 message UpsertDayRateRequest {
@@ -107,6 +193,31 @@ message DeleteDayRateRequest {
   int32 Id = 3;
 }
 //END DayRate CRUD
+
+//STR TimeInterval CRUD
+message UpsertTimeIntervalRequest {
+  string RequestId = 1; //essential to remap responses to relative client request
+  string SenderEndpoint = 2;
+  MicroservicesProtos.TimeIntervalType TimeInterval = 3;
+}
+
+message GetTimeIntervalRequest {
+  string RequestId = 1;
+  string SenderEndpoint = 2;
+  int32 Id = 3;
+}
+
+message GetTimeIntervalsRequest {
+  string RequestId = 1;
+  string SenderEndpoint = 2;
+}
+
+message DeleteTimeIntervalRequest {
+  string RequestId = 1;
+  string SenderEndpoint = 2;
+  int32 Id = 3;
+}
+//END TimeInterval CRUD
 
 //End Requests
 
