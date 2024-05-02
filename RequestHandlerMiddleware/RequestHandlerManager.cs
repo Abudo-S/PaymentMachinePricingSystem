@@ -35,7 +35,7 @@ namespace RequestHandlerMiddleware
         {
             clusterCoordinators = new ();
             clusterCoordinatorsSem = new SemaphoreSlim(1, 1);
-
+            
             //for local request persistency (cluster side or payment machine side)
             ThreadPool.SetMaxThreads(5, 5);
 
@@ -161,16 +161,110 @@ namespace RequestHandlerMiddleware
             }
         }
 
+        #region WeekPayModel Handling
+        public async Task HandleUpsertWeekPayModel(UpsertWeekPayModelRequest request)
+        {
+            var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+            {
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0) 
+                {
+                    await Task.Delay(1000);
+                }
+
+                var res = ((WeekPayModel.WeekPayModelClient)clusterCoordinators[ClusterType.WeekPayModelCluster]).UpsertWeekPayModel(request);
+
+                return res;
+            });
+
+            //persist in case of unacknowledgement
+            if (response == null || !response.Awk)
+            {
+                ThreadPool.QueueUserWorkItem(async (object? state) => await HandleUpsertWeekPayModel(request));
+            }
+        }
+        public async Task HandleGetWeekPayModel(GetWeekPayModelRequest request)
+        {
+            var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+            {
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
+
+                var res = ((WeekPayModel.WeekPayModelClient)clusterCoordinators[ClusterType.WeekPayModelCluster]).GetWeekPayModel(request);
+
+                return res;
+            });
+
+            //persist in case of unacknowledgement
+            if (response == null || !response.Awk)
+            {
+                ThreadPool.QueueUserWorkItem(async (object? state) => await HandleGetWeekPayModel(request));
+            }
+        }
+
+        public async Task HandleGetWeekPayModels(GetWeekPayModelsRequest request)
+        {
+
+            var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+            {
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
+
+                var res = ((WeekPayModel.WeekPayModelClient)clusterCoordinators[ClusterType.WeekPayModelCluster]).GetWeekPayModels(request);
+
+
+                return res;
+            });
+
+            //persist in case of unacknowledgement
+            if (response == null || !response.Awk)
+            {
+                ThreadPool.QueueUserWorkItem(async (object? state) => await HandleGetWeekPayModels(request));
+            }
+        }
+
+        public async Task HandleDeleteWeekPayModel(DeleteWeekPayModelRequest request)
+        {
+
+            var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+            {
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
+
+                var res = ((WeekPayModel.WeekPayModelClient)clusterCoordinators[ClusterType.WeekPayModelCluster]).DeleteWeekPayModel(request);
+
+                return res;
+            });
+
+            //persist in case of unacknowledgement
+            if (response == null || !response.Awk)
+            {
+                ThreadPool.QueueUserWorkItem(async (object? state) => await HandleDeleteWeekPayModel(request));
+            }
+        }
+        #endregion
+
+        #region DayRate Handling
         public async Task HandleUpsertDayRate(UpsertDayRateRequest request)
         {
             var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
             {
-                await clusterCoordinatorsSem.WaitAsync();
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
 
                 var res = ((DayRate.DayRateClient)clusterCoordinators[ClusterType.DayRateCluster]).UpsertDayRate(request);
-
-                //always release the semaphore
-                clusterCoordinatorsSem.Release();
 
                 return res;
             });
@@ -185,12 +279,13 @@ namespace RequestHandlerMiddleware
         {
             var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
             {
-                await clusterCoordinatorsSem.WaitAsync();
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
 
                 var res = ((DayRate.DayRateClient)clusterCoordinators[ClusterType.DayRateCluster]).GetDayRate(request);
-
-                //always release the semaphore
-                clusterCoordinatorsSem.Release();
 
                 return res;
             });
@@ -207,12 +302,13 @@ namespace RequestHandlerMiddleware
 
             var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
             {
-                await clusterCoordinatorsSem.WaitAsync();
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
 
                 var res = ((DayRate.DayRateClient)clusterCoordinators[ClusterType.DayRateCluster]).GetDayRates(request);
-
-                //always release the semaphore
-                clusterCoordinatorsSem.Release();
 
                 return res;
             });
@@ -229,12 +325,13 @@ namespace RequestHandlerMiddleware
 
             var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
             {
-                await clusterCoordinatorsSem.WaitAsync();
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
 
                 var res = ((DayRate.DayRateClient)clusterCoordinators[ClusterType.DayRateCluster]).DeleteDayRate(request);
-
-                //always release the semaphore
-                clusterCoordinatorsSem.Release();
 
                 return res;
             });
@@ -245,6 +342,99 @@ namespace RequestHandlerMiddleware
                 ThreadPool.QueueUserWorkItem(async (object? state) => await HandleDeleteDayRate(request));
             }
         }
+        #endregion
+
+        #region TimeInterval Handling
+        public async Task HandleUpsertTimeInterval(UpsertTimeIntervalRequest request)
+        {
+            var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+            {
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
+
+                var res = ((TimeInterval.TimeIntervalClient)clusterCoordinators[ClusterType.TimeIntervalCluster]).UpsertTimeInterval(request);
+
+                return res;
+            });
+
+            //persist in case of unacknowledgement
+            if (response == null || !response.Awk)
+            {
+                ThreadPool.QueueUserWorkItem(async (object? state) => await HandleUpsertTimeInterval(request));
+            }
+        }
+
+        public async Task HandleGetTimeInterval(GetTimeIntervalRequest request)
+        {
+            var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+            {
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
+
+                var res = ((TimeInterval.TimeIntervalClient)clusterCoordinators[ClusterType.TimeIntervalCluster]).GetTimeInterval(request);
+
+                return res;
+            });
+
+            //persist in case of unacknowledgement
+            if (response == null || !response.Awk)
+            {
+                ThreadPool.QueueUserWorkItem(async (object? state) => await HandleGetTimeInterval(request));
+            }
+        }
+
+        public async Task HandleGetTimeIntervals(GetTimeIntervalsRequest request)
+        {
+
+            var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+            {
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
+
+                var res = ((TimeInterval.TimeIntervalClient)clusterCoordinators[ClusterType.TimeIntervalCluster]).GetTimeIntervals(request);
+
+                return res;
+            });
+
+            //persist in case of unacknowledgement
+            if (response == null || !response.Awk)
+            {
+                ThreadPool.QueueUserWorkItem(async (object? state) => await HandleGetTimeIntervals(request));
+            }
+        }
+
+        public async Task HandleDeleteTimeInterval(DeleteTimeIntervalRequest request)
+        {
+
+            var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+            {
+                //wait if a cluster coordinator is being modified
+                while (clusterCoordinatorsSem.CurrentCount == 0)
+                {
+                    await Task.Delay(1000);
+                }
+
+                var res = ((TimeInterval.TimeIntervalClient)clusterCoordinators[ClusterType.TimeIntervalCluster]).DeleteTimeInterval(request);
+
+                return res;
+            });
+
+            //persist in case of unacknowledgement
+            if (response == null || !response.Awk)
+            {
+                ThreadPool.QueueUserWorkItem(async (object? state) => await HandleDeleteTimeInterval(request));
+            }
+        }
+        #endregion
 
         #region Helpers
         internal static string GetRequestId(string senderEP, string requestId)
