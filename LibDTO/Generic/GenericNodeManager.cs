@@ -138,6 +138,8 @@ namespace LibDTO.Generic
                         //init cluster nodes clients
                         GrpcClientInitializer.Instance.InitializeGrpcClients<T>(otherClusterNodes);
 
+                        log.Info("Created otherClusterNodes grpc clients");
+
                         //ask all nodes for unique pending notified requests
                         await AskForPendingRequests();
                     //});
@@ -152,6 +154,8 @@ namespace LibDTO.Generic
                                             this.middlewareEndpoint
                                         );
                                 });
+
+                    log.Info("Created middleware client");
 
                     this.middlewareGrpcClient = (RequestHandler.RequestHandlerClient)result;
                 });

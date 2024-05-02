@@ -128,37 +128,40 @@ namespace RequestHandlerMiddleware
 
         public async Task SetClusterCoordinator(string clusterType, string coordinatorEndPoint)
         {
-            try
-            {
-
               await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
               {
-                    await clusterCoordinatorsSem.WaitAsync();
+                  await clusterCoordinatorsSem.WaitAsync();
+                  try
+                  {
+                        switch (clusterType)
+                        {
+                            case ClusterType.DayRateCluster:
+                                clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<DayRate.DayRateClient>(coordinatorEndPoint);
+                                break;
 
-                    switch (clusterType)
-                    {
-                        case ClusterType.DayRateCluster:
-                            clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<DayRate.DayRateClient>(coordinatorEndPoint);
-                            break;
+                            case ClusterType.WeekPayModelCluster:
+                                clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<WeekPayModel.WeekPayModelClient>(coordinatorEndPoint);
+                                break;
 
-                        case ClusterType.WeekPayModelCluster:
-                            clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<WeekPayModel.WeekPayModelClient>(coordinatorEndPoint);
-                            break;
+                            case ClusterType.TimeIntervalCluster:
+                                clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<TimeInterval.TimeIntervalClient>(coordinatorEndPoint);
+                                break;
 
-                        case ClusterType.TimeIntervalCluster:
-                            clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<TimeInterval.TimeIntervalClient>(coordinatorEndPoint);
-                            break;
-
-                        default:
-                            clusterCoordinatorsSem.Release();
-                            throw new KeyNotFoundException($"Can't find clusterType: {clusterType}");
-                    }
-               });
-            }
-            finally
-            {
-                clusterCoordinatorsSem.Release();
-            }
+                            default:
+                                clusterCoordinatorsSem.Release();
+                                throw new KeyNotFoundException($"Can't find clusterType: {clusterType}");
+                        }
+                  }
+                  catch (RpcException e)
+                  {
+                      clusterCoordinatorsSem.Release();
+                      throw new RpcException(e.Status); //for grpcCircuitRetryPolicy
+                  }
+                  finally
+                  {
+                      clusterCoordinatorsSem.Release();
+                  }
+              });
         }
 
         #region WeekPayModel Handling

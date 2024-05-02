@@ -219,7 +219,7 @@ namespace WeekPayModelService
                         _ = cache.RemoveAsync(requestId);
                     });
 
-                    log.Info($"");
+                    log.Info($"Processed requestId: {requestId}");
                 }
             }
             catch(Exception ex)
