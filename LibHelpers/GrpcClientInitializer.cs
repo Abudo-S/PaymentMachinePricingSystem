@@ -30,7 +30,13 @@ namespace LibHelpers
 
         public ClientBase BuildSingleGrpcClient<T>(string channelAddr, bool useHttp2 = false) where T : ClientBase
         {
-            var httpClientHandler = new HttpClientHandler();
+            log.Info($"Building grpc client for channelAddr: {channelAddr}, useHttp2: {useHttp2}");
+
+            HttpMessageHandler httpClientHandler = new HttpClientHandler();
+
+            if (channelAddr.ToLower().Contains("loadbalancer"))
+                httpClientHandler = new SubdirectoryHandler(new HttpClientHandler(), "/loadbalancer");
+
             GrpcWebHandler grpcWebhandler;
 
             if (!useHttp2)
@@ -40,17 +46,18 @@ namespace LibHelpers
             }
             else
             {
-                //will ignore certificate validation errors, if you need that you may comment this section or make it configurable
-                httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
-                {
-                    return true;
-                };
+                ////will ignore certificate validation errors, if you need that you may comment this section or make it configurable
+                //httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+                //{
+                //    return true;
+                //};
 
                 grpcWebhandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, httpClientHandler);
                 grpcWebhandler.HttpVersion = new Version(2, 0);
             }
 
             var httpClient = new HttpClient(grpcWebhandler);
+            
             var protoChannel = GrpcChannel.ForAddress(channelAddr, new GrpcChannelOptions { HttpClient = httpClient });
 
             return (ClientBase)Activator.CreateInstance(typeof(T), protoChannel);
@@ -84,7 +91,7 @@ namespace LibHelpers
 
             try
             {
-                if (nodesGrpcClients[nodeAddr] == null)
+                if (!nodesGrpcClients.ContainsKey(nodeAddr) || nodesGrpcClients[nodeAddr] == null)
                 {
                     InitializeGrpcClients<T>(new List<string>() { nodeAddr});
                 }
@@ -95,6 +102,9 @@ namespace LibHelpers
             {
                 log.Warn(ex, $"In GetNodeClient: {nodeAddr}");
             }
+
+            if (client == null)
+                throw new RpcException(Status.DefaultCancelled);
 
             return client;
         }
@@ -129,5 +139,28 @@ namespace LibHelpers
 
             return clients;
         }
+    }
+}
+
+public class SubdirectoryHandler : DelegatingHandler
+{
+    private readonly string _subdirectory;
+
+    public SubdirectoryHandler(HttpMessageHandler innerHandler, string subdirectory)
+        : base(innerHandler)
+    {
+        _subdirectory = subdirectory;
+    }
+
+    protected override Task<HttpResponseMessage> SendAsync(
+        HttpRequestMessage request, CancellationToken cancellationToken)
+    {
+        var old = request.RequestUri;
+
+        var url = $"{old.Scheme}://{old.Host}:{old.Port}";
+        url += $"{_subdirectory}{request.RequestUri.AbsolutePath}";
+        request.RequestUri = new Uri(url, UriKind.Absolute);
+
+        return base.SendAsync(request, cancellationToken);
     }
 }

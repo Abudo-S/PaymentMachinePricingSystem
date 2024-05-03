@@ -100,10 +100,16 @@ namespace RequestHandlerMiddleware
             try
             {
                 var kvp = GetSenderEPAndRequestId(requestId);
-                var paymentMachineClient = (DumbPaymentMachine.DumbPaymentMachineClient)GrpcClientInitializer.Instance.GetNodeClient<DumbPaymentMachine.DumbPaymentMachineClient>(kvp.Key);
+
+                var paymentMachineClient = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                {
+                    await Task.Yield();
+                    return (DumbPaymentMachine.DumbPaymentMachineClient)GrpcClientInitializer.Instance.GetNodeClient<DumbPaymentMachine.DumbPaymentMachineClient>(kvp.Key);
+                });
 
                 var response = await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
+                    await Task.Yield();
                     var res = paymentMachineClient.ReceiveResponse(new ReceiveResponseMsg()
                     {
                         RequestId = requestId,
