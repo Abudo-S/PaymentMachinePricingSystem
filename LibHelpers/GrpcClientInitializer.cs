@@ -28,14 +28,14 @@ namespace LibHelpers
             nodesGrpcClients = new();
         }
 
-        public ClientBase BuildSingleGrpcClient<T>(string channelAddr, bool useHttp2 = false) where T : ClientBase
+        public ClientBase BuildSingleGrpcClient<T>(string channelAddr, string subdir = null, bool useHttp2 = false) where T : ClientBase
         {
             log.Info($"Building grpc client for channelAddr: {channelAddr}, useHttp2: {useHttp2}");
 
             HttpMessageHandler httpClientHandler = new HttpClientHandler();
 
-            if (channelAddr.ToLower().Contains("loadbalancer"))
-                httpClientHandler = new SubdirectoryHandler(new HttpClientHandler(), "/loadbalancer");
+            if (!string.IsNullOrEmpty(subdir))
+                httpClientHandler = new SubdirectoryHandler(new HttpClientHandler(), subdir);
 
             GrpcWebHandler grpcWebhandler;
 
@@ -46,11 +46,11 @@ namespace LibHelpers
             }
             else
             {
-                ////will ignore certificate validation errors, if you need that you may comment this section or make it configurable
-                //httpClientHandler.ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
-                //{
-                //    return true;
-                //};
+                //will ignore certificate validation errors, if you need that you may comment this section or make it configurable
+                ((HttpClientHandler)httpClientHandler).ServerCertificateCustomValidationCallback = (message, cert, chain, sslPolicyErrors) =>
+                {
+                    return true;
+                };
 
                 grpcWebhandler = new GrpcWebHandler(GrpcWebMode.GrpcWeb, httpClientHandler);
                 grpcWebhandler.HttpVersion = new Version(2, 0);

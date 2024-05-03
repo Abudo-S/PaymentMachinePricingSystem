@@ -25,7 +25,7 @@ namespace RequestHandlerMiddleware.Services
             {
                 log.Info($"Invoked NotifyClusterCoordinator with ClusterType: {request.ClusterType}, CoordinatorEndpoint: {request.CoordinatorEndpoint}");
 
-                await RequestHandlerManager.Instance.SetClusterCoordinator(request.ClusterType, request.CoordinatorEndpoint + "/LoadBalancer");
+                await RequestHandlerManager.Instance.SetClusterCoordinator(request.ClusterType, request.CoordinatorEndpoint, "/LoadBalancer");
 
                 return new SyncResult
                 {

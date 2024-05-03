@@ -132,7 +132,7 @@ namespace RequestHandlerMiddleware
             }
         }
 
-        public async Task SetClusterCoordinator(string clusterType, string coordinatorEndPoint)
+        public async Task SetClusterCoordinator(string clusterType, string coordinatorEndPoint, string suffix)
         {
               await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
               {
@@ -142,15 +142,15 @@ namespace RequestHandlerMiddleware
                         switch (clusterType)
                         {
                             case ClusterType.DayRateCluster:
-                                clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<DayRate.DayRateClient>(coordinatorEndPoint);
+                                clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<DayRate.DayRateClient>(coordinatorEndPoint, suffix);
                                 break;
 
                             case ClusterType.WeekPayModelCluster:
-                                clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<WeekPayModel.WeekPayModelClient>(coordinatorEndPoint);
+                                clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<WeekPayModel.WeekPayModelClient>(coordinatorEndPoint, suffix);
                                 break;
 
                             case ClusterType.TimeIntervalCluster:
-                                clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<TimeInterval.TimeIntervalClient>(coordinatorEndPoint);
+                                clusterCoordinators[clusterType] = GrpcClientInitializer.Instance.BuildSingleGrpcClient<TimeInterval.TimeIntervalClient>(coordinatorEndPoint, suffix);
                                 break;
 
                             default:
