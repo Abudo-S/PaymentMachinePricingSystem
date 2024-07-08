@@ -1,42 +1,61 @@
 - **Idea**
 
-  The idea is to realize a distributed payment system that can be used for parking's payment machines to calculate vehicle's fee.
+ In several advanced parking systems, a specified or relatively complex pricing algorithm
+is applied to calculate vehicle’s fee to be paid before leaving the parking, the fee covers
+the whole period in which such a vehicle was present in the parking.
+In such a system, can be present various feeing models per week, each model specifies
+rules on some or all time intervals of a week day.
+The project aims to realize a distributed payment system that can be used for parking’s
+payment machines to calculate vehicle’s fee. The calculation of fee is distributed
+into {week, day, time interval} units which got assigned correspondently to their clusters
+(each cluster is a set of containerized microservices with load balancing and fault
+tolerance techniques in order to offer a high-available system).
 
-  In several advanced parking systems, a specified or relatively complex pricing algorithm is applied to calculate vehicle's fee to be paid before leaving the parking, the fee covers the whole period in which such a vehicle was present in the parking.
 
-  In such a system can be present various models per week, each model specifies rules on some or all time intervals of a week day.
-
-  The fee calculation is obtained by applying all registered "weekPayModel" on vehicle's period on condition that such a model has at least one day that its time intervals coincide with vehicle's period.
-
-  Each time interval rule has a priority to be applied in case of multiple models that cover such a period/interval of time; when "TotalCoveredMinutes" of interval is reached, the "timeIntervalRule" isn't considered again during the same fee calculation.
-
-  The input period of vehicle has unlimited range of time; it can be in minutes, hours, days, months or even a mix between all of them, so the algorithm should be robust while categorizing the calculation per each model considering days and time intervals with several rules and priorities.
-
-  Restriction: the attribute "TotalCoveredMinutes" in TimeIntervalRule can't have a value higher than a predefined value (ex. 60min).
-
+![Screenshot 2024-07-08 150530](https://github.com/Abudo-S/PaymentMachinePricingSystem/assets/40835481/7a39a637-8796-4a4d-808b-dadfa2020ae7)
 
 - **Components**
+1. Payment machines simulator: which is responsable of requesting the calculation of a
+fee (Note that: several payment machine can request even simultaneously the corresponding
+for a certain period of time). A Payment machine can also be enabled
+to perform CRUD operations on model objects using administrator account/token on
+payment machine.(Any request is sent to the middleware in order to receive a further
+asynchronous response if needed).
 
-  1. Payment machines simulator: several payment machine can request even simultaneously the corresponding for a certain period of time.
+2. Asynchronous persistent middleware: a gRPC service that elaborates requests before
+forwarding them to the clusters. (The middleware knows only the coordinator’s endpoint
+of each cluster).
 
-  2. Admin client simulator [can be embedded in pt.1- to be decided later]:  an administrator account on payment machine or online platform which can apply CRUD operations on model objects, can also register payment machines and set them in/out maintenance.
+3. Clusters of gRPC microservices:
+• Week-pay-model cluster: contains a set of week-pay-model nodes for which there’s
+a defined coordinator node that is enabled with load-balancing component to
+forward requests to an appropriate service. Each service receives the requests
+relative to week models like {create, read, update, delete, calculate week fee}.
+• Day-pay-model cluster: contains a set of day-pay-model nodes for which there’s
+a pre-defined coordinator node that is enabled with load-balancing component
+to forward requests to an appropriate service. Each service receives the requests
+relative to day models like {create, read, update, delete, calculate day fee}.
+• Time-interval cluster: contains a set of time-interval-rule nodes for which there’s
+a pre-defined coordinator node that is enabled with load-balancing component
+to forward requests to an appropriate service. Each service receives the requests
+relative to time-interval rules like {create, read, update, delete, calculate timeinterval
+fee with most appropriate rules}.
 
-  3. Asynchronous persistent middleware: a gRPC interceptor that elaborates requests before forwarding them to the microservices . [Note we may consider also MQTT through payment machines' side and this middleware].
+4. Redis Cache DB per cluster:
+• Week requests cache: used to handle temporarily all the received requests of
+week-pay-model cluster, so these requests can be used subsequently as a copy to
+be passed to a microservice instead of a failed one during another microservice’s
+processing.
+• Day requests cache: used to handle temporarily all the received requests of daymodel
+cluster, so these requests can be used subsequently as a copy to be passed
+to a microservice instead of a failed one during another microservice’s processing.
+• Time interval requests cache: used to handle temporarily all the received requests
+of time-interval cluster, so these requests can be used subsequently as a copy to
+be passed to a microservice instead of a failed one during another microservice’s
+processing.
 
-  4. Microservices (gRPC):
-
-     - WeekPayModelService: receives the requests in terms of weeks that should be elaborated and apply the pricing for a specified week, unifies various days' calculated partial fee. 
-
-     - DayPayModelService: applies day's free minutes and distributed day's period on various time intervals, then unifies various intervals' calculated partial fee. 
-
-     - TimeIntervalService: classifies rules' priorities and apply various amounts considering frequency of minutes and total covered minutes.
-
-  5. A cluster of gRPC microservice's instances will run with its own coordinator of the same type:
-     - A coordinator instance recieves middleware's requests and using a load balancer "YARP", it'll forward it to an appropriate cluster node.
-     - A cluster node will write the received request in shared distributed cache "Redis", informing all cluster nodes of the occured request-assignment with requestID and expiry.
-     - Cluster nodes should remain in Ping with the coordinator; so if it fails, they can establish a "Bully" election considering their ids.
-     - A node which finishes elaborating its request, it should inform the middleware with the result, then the same node should clean request's data in cache. Also it should inform other nodes for the accomplished request.
-     - Another node can handle an expired request (supposing node's failure), informing all other nodes of the new expiry (the oldest information wins).
+5. Mongo DB: on which any cluster’s microservice has access, in order to apply elaborated
+request’s CRUD operations. (Each microservice has its own model’s DB service).
 
 - **Examples of requests coming to the middleware**
 
