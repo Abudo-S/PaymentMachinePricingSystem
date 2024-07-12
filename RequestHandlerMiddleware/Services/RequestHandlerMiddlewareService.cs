@@ -4,6 +4,7 @@ using GenericMessages;
 using Grpc.Core;
 using LibDTO.Enum;
 using LibHelpers;
+using Microsoft.AspNetCore.Authorization;
 using MiddlewareProtos;
 using static Google.Rpc.Context.AttributeContext.Types;
 
@@ -19,6 +20,7 @@ namespace RequestHandlerMiddleware.Services
             RequiredDelayInMilliseconds = (int)(configuration.GetValue(typeof(int), "RequiredDelayInMilliseconds") ?? 5000);
         }
 
+        [AllowAnonymous]
         public override async Task<SyncResult> NotifyClusterCoordinator(NotifyClusterCoordinatorRequest request, ServerCallContext context)
         {
             try
@@ -43,6 +45,7 @@ namespace RequestHandlerMiddleware.Services
             };
         }
 
+        [AllowAnonymous]
         public override Task<SyncResult> NotifyProcessedRequest(NotifyProcessedRequestMessage request, ServerCallContext context)
         {
             try
@@ -72,6 +75,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [AllowAnonymous]
         public override Task<CalculateFeeResponse> CalculateFee(CalculateFeeRequest request, ServerCallContext context)
         {
             try
@@ -99,6 +103,7 @@ namespace RequestHandlerMiddleware.Services
         }
 
         #region WeekPayModel
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> UpsertWeekPayModel(UpsertWeekPayModelRequest request, ServerCallContext context)
         {
             try
@@ -138,6 +143,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> GetWeekPayModel(GetWeekPayModelRequest request, ServerCallContext context)
         {
             try
@@ -177,6 +183,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> GetWeekPayModels(GetWeekPayModelsRequest request, ServerCallContext context)
         {
             try
@@ -215,6 +222,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> DeleteWeekPayModel(DeleteWeekPayModelRequest request, ServerCallContext context)
         {
             try
@@ -256,6 +264,7 @@ namespace RequestHandlerMiddleware.Services
         #endregion
 
         #region DayRate
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> UpsertDayRate(UpsertDayRateRequest request, ServerCallContext context)
         {
             try
@@ -295,6 +304,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> GetDayRate(GetDayRateRequest request, ServerCallContext context)
         {
             try
@@ -334,6 +344,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> GetDayRates(GetDayRatesRequest request, ServerCallContext context)
         {
             try
@@ -372,6 +383,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> DeleteDayRate(DeleteDayRateRequest request, ServerCallContext context)
         {
             try
@@ -413,6 +425,7 @@ namespace RequestHandlerMiddleware.Services
         #endregion
 
         #region TimeInterval
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> UpsertTimeInterval(UpsertTimeIntervalRequest request, ServerCallContext context)
         {
             try
@@ -452,6 +465,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> GetTimeInterval(GetTimeIntervalRequest request, ServerCallContext context)
         {
             try
@@ -491,6 +505,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> GetTimeIntervals(GetTimeIntervalsRequest request, ServerCallContext context)
         {
             try
@@ -529,6 +544,7 @@ namespace RequestHandlerMiddleware.Services
             });
         }
 
+        [Authorize(Roles = "Admin")]
         public override Task<AsyncResult> DeleteTimeInterval(DeleteTimeIntervalRequest request, ServerCallContext context)
         {
             try
