@@ -4,10 +4,10 @@ import "google/api/annotations.proto";
 
 package AuthenticationProtos;
 
-service AuthenticationProto {
+service Authentication {
   rpc Authenticate (UserCreds) returns (UserCredsAnswer) {
   option (google.api.http) = {
-      post: "/HttpAPI/Auth"
+      post: "/HttpAPI/Authenticate"
       body: "*"
     };
   }
