@@ -1,10 +1,13 @@
 using AutoMapper;
-using LibDTO.Config;
-using LibHelpers;
+using Google.Api;
+using Microsoft.AspNetCore.Authentication.JwtBearer;
+using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.ResponseCompression;
 using Microsoft.AspNetCore.Server.Kestrel.Core;
 using Microsoft.Extensions.Caching.Distributed;
+using Microsoft.IdentityModel.Tokens;
 using RequestHandlerMiddleware.Services;
+using System.Text;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -12,6 +15,7 @@ var builder = WebApplication.CreateBuilder(args);
 // Add services to the container.
 builder.Services.AddGrpc();//.AddServiceOptions(options => options.);
 builder.Services.AddGrpc().AddJsonTranscoding();
+builder.Services.AddAuthorization();
 
 //builder.Services.AddHealthChecks();
 
@@ -30,23 +34,52 @@ builder.Services.AddResponseCompression(opts =>
         new[] { "application/octet-stream" });
 });
 
+
+#region JWT
+
+//Security mechanism to authenticate API user
+
+var key = Encoding.ASCII.GetBytes((string)(builder.Configuration.GetValue(typeof(string), "ServerKey") ?? "TWlkZGxld2FyZUtleQ=="));
+builder.Services.AddAuthentication(x =>
+{
+    x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
+    x.DefaultChallengeScheme = JwtBearerDefaults.AuthenticationScheme;
+})
+    .AddJwtBearer(x =>
+    {
+        x.RequireHttpsMetadata = false;
+        x.SaveToken = true;
+        x.TokenValidationParameters = new TokenValidationParameters
+        {
+            ValidateIssuerSigningKey = true,
+            IssuerSigningKey = new SymmetricSecurityKey(key),
+            ValidateIssuer = false,
+            ValidateAudience = false
+        };
+    });
+
+builder.Services.AddAuthorization();
+
+#endregion
+
 //if enabled, we can't overide ports through docker's container-command
-//builder.WebHost.UseKestrel(option =>
-//{
-//    option.ListenAnyIP(80, config =>
-//    {
-//        config.Protocols = HttpProtocols.Http1AndHttp2;
-//    });
-//    //if enabled YARP's HTTP request verion should be "2.0" + TLS certificate should be configured
-//    //option.ListenAnyIP(81, config =>
-//    //{
-//    //    config.Protocols = HttpProtocols.Http1AndHttp2;
-//    //    config.UseHttps();
-//    //});
-//});
+builder.WebHost.UseKestrel(option =>
+{
+    option.ListenAnyIP(81, config =>
+    {
+        config.Protocols = HttpProtocols.Http1AndHttp2;
+    });
+    //if enabled YARP's HTTP request verion should be "2.0" + TLS certificate should be configured
+    //option.ListenAnyIP(81, config =>
+    //{
+    //    config.Protocols = HttpProtocols.Http1AndHttp2;
+    //    config.UseHttps();
+    //});
+});
 
 //Dependency injection
 builder.Services.AddScoped<RequestHandlerMiddlewareService>();
+builder.Services.AddScoped<AuthenticationService>();
 
 //builder.Services.Configure<KestrelServerOptions>(options => {
 //    options.ConfigureHttpsDefaults(options =>
@@ -67,6 +100,8 @@ app.UseRouting();
 app.UseStaticFiles();
 
 app.UseRouting();
+app.UseAuthentication();
+app.UseAuthorization();
 
 // must be added after UseRouting and before UseEndpoints 
 //new GrpcWebOptions() { DefaultEnabled = true } -> applies default options that changes headers -cause compression error to YARP
@@ -75,7 +110,9 @@ app.UseGrpcWeb();
 
 app.UseCors();
 
-app.MapGrpcService<RequestHandlerMiddlewareService>().EnableGrpcWeb().RequireCors("AllowAll");
+//app.MapGrpcService<RequestHandlerMiddlewareService>().EnableGrpcWeb().RequireAuthorization("GrpcAuth");
+app.MapGrpcService<RequestHandlerMiddlewareService>().EnableGrpcWeb();
+app.MapGrpcService<AuthenticationService>().EnableGrpcWeb().RequireCors("AllowAll");
 
 app.UseEndpoints(endpoints =>
 {
