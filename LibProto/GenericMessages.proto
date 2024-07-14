@@ -62,3 +62,7 @@ message GetCoordinatorIpResponse {
 message AddOrRemoveClusterNodeRequest {
 	string clusterNodeUri = 1;
 }
+
+message NotifyNodePresenceRequest {
+	string nodeUri = 1;
+}
