@@ -388,5 +388,28 @@ namespace DayRateService.Services
                 Awk = false
             });
         }
+
+        public override Task<AsyncResult> NotifyNodePresence(NotifyNodePresenceRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked NotifyNodePresence with NodeUri: {request.NodeUri}");
+
+                //to be implemented
+                //return Task.FromResult(new AsyncResult
+                //{
+                //    Awk = DayRateManager.Instance.NotifyNodePresence(request.ClusterNodeUri)
+                //});
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In NotifyNodePresence()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
     }
 }

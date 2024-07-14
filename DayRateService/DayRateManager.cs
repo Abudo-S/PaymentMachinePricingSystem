@@ -666,6 +666,7 @@ namespace DayRateService
                         };
 
                         Task.Run(() => RunTasksAndAggregate(otherClusterNodes, taskFactory));
+
                     }
 
                     result = true;
