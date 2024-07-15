@@ -49,6 +49,11 @@ namespace LibDTO.Generic
         protected SemaphoreSlim bullyElectionLockSem;
 
         /// <summary>
+        /// dedicated to synchronize add/remove cluster nodes
+        /// </summary>
+        protected SemaphoreSlim clusterNodesSem;
+
+        /// <summary>
         /// used to create/recreate a grpc client in case of cluster node
         /// </summary>
         protected string middlewareEndpoint;
@@ -61,7 +66,7 @@ namespace LibDTO.Generic
         /// <summary>
         /// all other cluster's nodes
         /// </summary>
-        protected List<string> otherClusterNodes;
+        protected volatile List<string> otherClusterNodes;
 
         /// <summary>
         /// nodes present in otherClusterNodes that have higher id
@@ -305,11 +310,14 @@ namespace LibDTO.Generic
             {
                 log.Info($"Invoked CheckIfNodeIdHigher anotherNodeId: {anotherNodeId}, currentNodeId {machineIP.GetHashCode()}");
 
-                //block multiple elections
-                var result = bullyElectionLockSem.CurrentCount > 0 && anotherNodeId < machineIP.GetHashCode();
+                
+                var result = anotherNodeId < machineIP.GetHashCode();
 
-                if (result)
+                //if the current id is higher then start own election
+                //block concurrent elections
+                if (result && bullyElectionLockSem.CurrentCount > 0)
                 {
+
                     Task.Run(async() =>
                     {
                         coordinatorTraceTimer.Stop();
@@ -505,9 +513,9 @@ namespace LibDTO.Generic
         /// <returns></returns>
         public abstract bool NotifyHandledRequest(string requestId);
 
-        public abstract bool AddClusterNode(string clusterNodeUri);
+        public abstract Task<bool> AddClusterNode(string clusterNodeUri);
 
-        public abstract bool RemoveClusterNode(string clusterNodeuri);
+        public abstract Task<bool> RemoveClusterNode(string clusterNodeuri);
 
         #endregion
 
