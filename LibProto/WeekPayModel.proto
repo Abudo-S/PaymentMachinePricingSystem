@@ -99,6 +99,13 @@ service WeekPayModel {
       body: "*"
     };
   }
+  rpc NotifyNodePresence(GenericMessages.NotifyNodePresenceRequest) returns (GenericMessages.AsyncResult)
+  {
+	  option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/NotifyNodePresence"
+      body: "*"
+    };
+  }
   rpc IsAlive (GenericMessages.IsAliveRequest) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {

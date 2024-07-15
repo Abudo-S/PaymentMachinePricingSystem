@@ -346,10 +346,12 @@ namespace TimeIntervalService.Services
             try
             {
                 log.Info($"Invoked AddClusterNode with clusterNodeUri: {request.ClusterNodeUri}");
+                
+                _ = TimeIntervalManager.Instance.AddClusterNode(request.ClusterNodeUri);
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = TimeIntervalManager.Instance.AddClusterNode(request.ClusterNodeUri)
+                    Awk = true
                 });
             }
             catch (Exception ex)
@@ -369,15 +371,40 @@ namespace TimeIntervalService.Services
             {
                 log.Info($"Invoked RemoveClusterNode with clusterNodeUri: {request.ClusterNodeUri}");
 
+                _ = TimeIntervalManager.Instance.RemoveClusterNode(request.ClusterNodeUri);
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = TimeIntervalManager.Instance.RemoveClusterNode(request.ClusterNodeUri)
+                    Awk = true
                 });
             }
             catch (Exception ex)
             {
                 log.Error(ex, " In RemoveClusterNode()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
+
+        public override Task<AsyncResult> NotifyNodePresence(NotifyNodePresenceRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked NotifyNodePresence with NodeUri: {request.NodeUri}");
+
+                _ = TimeIntervalManager.Instance.AppendPresentClusterNode(request.NodeUri);
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In NotifyNodePresence()!");
             }
 
             return Task.FromResult(new AsyncResult
