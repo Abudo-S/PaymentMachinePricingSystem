@@ -7,10 +7,13 @@ using LibDTO.Generic;
 using LibHelpers;
 using MicroservicesProtos;
 using Microsoft.AspNetCore.Authentication;
+using StackExchange.Redis;
 using System.Net;
 using System.Net.Sockets;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Text.Json;
+using System.Text.RegularExpressions;
 using System.Timers;
 using static Google.Rpc.Context.AttributeContext.Types;
 
@@ -42,6 +45,7 @@ namespace DayRateService
             nThreadsLock = new object();
             bullyElectionLockSem = new SemaphoreSlim(1, 1);
             currentClusterCoordinatorSem = new SemaphoreSlim(1, 1);
+            clusterNodesSem = new SemaphoreSlim(1, 1);
         }
 
         public override async Task AskForPendingRequests()
@@ -503,10 +507,14 @@ namespace DayRateService
                     }
                 };
 
-                var higherClusterNodes = otherClusterNodes.Where(clusterNode => clusterNode.Replace("http://", "").GetHashCode() > machineIP.GetHashCode()).ToList();
+                Regex ipRegex = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
+                var higherClusterNodes = otherClusterNodes.Where(clusterNode => ipRegex.Matches(clusterNode)[0].GetHashCode() > machineIP.GetHashCode()).ToList();
 
                 //send CanICoordinate to all higher nodes
                 var results = await RunTasksAndAggregate(higherClusterNodes, taskFactory);
+
+                log.Info("Coordinator election results: " + string.Join(", ", higherClusterNodes.Zip(results).Select(item => item.Second).ToList()));
+
                 var result = !results.Any(kvp => kvp.Value == false);
 
                 if (result) //election won
@@ -635,7 +643,7 @@ namespace DayRateService
             }
         }
 
-        public override bool AddClusterNode(string clusterNodeUri)
+        public async override Task<bool> AddClusterNode(string clusterNodeUri)
         {
             bool result = false;
 
@@ -645,9 +653,11 @@ namespace DayRateService
 
                 if (!clusterNodeUri.Contains(machineIP))
                 {
+                    await clusterNodesSem.WaitAsync();
                     otherClusterNodes.Add(clusterNodeUri);
 
                     currentLoadBalancer.Update(otherClusterNodes);
+                    clusterNodesSem.Release();
 
                     if (isCoordinator) 
                     {
@@ -669,6 +679,16 @@ namespace DayRateService
 
                     }
 
+                    //notify the new node of the current node presence
+                    var res = grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(clusterNodeUri);
+                        return ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).NotifyNodePresence(new GenericMessages.NotifyNodePresenceRequest()
+                        {
+                            NodeUri = this.machineIP + ":" + 80 //default port!
+                        }).Awk;
+                    });
+
                     result = true;
                 }
             }
@@ -680,7 +700,7 @@ namespace DayRateService
             return result;
         }
 
-        public override bool RemoveClusterNode(string clusterNodeUri)
+        public async override Task<bool> RemoveClusterNode(string clusterNodeUri)
         {
             bool result = false;
             try
@@ -689,9 +709,11 @@ namespace DayRateService
 
                 if (!clusterNodeUri.Contains(machineIP))
                 {
+                    await clusterNodesSem.WaitAsync();
                     otherClusterNodes.Remove(clusterNodeUri);
 
                     currentLoadBalancer.Update(otherClusterNodes);
+                    clusterNodesSem.Release();
 
                     if (isCoordinator)
                     {
@@ -721,6 +743,30 @@ namespace DayRateService
             }
 
             return false;
+        }
+
+        public async Task<bool> AppendPresentClusterNode(string clusterNodeUri)
+        {
+            bool result = false;
+
+            try
+            {
+                log.Info($"Invoked AppendPresentClusterNode clusterNodeUri: {clusterNodeUri}");
+
+                await clusterNodesSem.WaitAsync();
+                otherClusterNodes.Add(clusterNodeUri);
+
+                currentLoadBalancer.Update(otherClusterNodes);
+                clusterNodesSem.Release();
+
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, "In AppendPresentClusterNode()!");
+            }
+
+            return result;
         }
         #endregion
     }

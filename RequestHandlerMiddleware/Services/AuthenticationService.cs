@@ -19,7 +19,7 @@ namespace RequestHandlerMiddleware.Services
 
         public AuthenticationService(IConfiguration configuration)
         {
-            ServerKey = (string)(configuration.GetValue(typeof(string), "ServerKey") ?? "TWlkZGxld2FyZUtleQ==");
+            ServerKey = (string)(configuration.GetValue(typeof(string), "ServerKey") ?? "TWlkZGxld2FyZUtleQ==TWlkZGxld2FyZUtleQ==TWlkZGxld2FyZUtleQ==");
         }
 
         public override Task<UserCredsAnswer> Authenticate(UserCreds request, ServerCallContext context)

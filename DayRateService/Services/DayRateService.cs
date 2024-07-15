@@ -350,9 +350,11 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked AddClusterNode with clusterNodeUri: {request.ClusterNodeUri}");
 
+                _ = DayRateManager.Instance.AddClusterNode(request.ClusterNodeUri);
+
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = DayRateManager.Instance.AddClusterNode(request.ClusterNodeUri)
+                    Awk = true
                 });
             }
             catch (Exception ex)
@@ -372,10 +374,11 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked RemoveClusterNode with clusterNodeUri: {request.ClusterNodeUri}");
 
+                _ = DayRateManager.Instance.RemoveClusterNode(request.ClusterNodeUri);
 
                 return Task.FromResult(new AsyncResult
                 {
-                    Awk = DayRateManager.Instance.RemoveClusterNode(request.ClusterNodeUri)
+                    Awk = true
                 });
             }
             catch (Exception ex)
@@ -395,11 +398,12 @@ namespace DayRateService.Services
             {
                 log.Info($"Invoked NotifyNodePresence with NodeUri: {request.NodeUri}");
 
-                //to be implemented
-                //return Task.FromResult(new AsyncResult
-                //{
-                //    Awk = DayRateManager.Instance.NotifyNodePresence(request.ClusterNodeUri)
-                //});
+                _ = DayRateManager.Instance.AppendPresentClusterNode(request.NodeUri);
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = true
+                });
             }
             catch (Exception ex)
             {

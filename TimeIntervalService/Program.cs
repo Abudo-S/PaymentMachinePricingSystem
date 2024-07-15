@@ -41,19 +41,19 @@ builder.Services.AddResponseCompression(opts =>
 });
 
 //if enabled, we can't overide ports through docker's container-command
-builder.WebHost.UseKestrel(option =>
-{
-    option.ListenAnyIP(8080, config =>
-    {
-        config.Protocols = HttpProtocols.Http1AndHttp2;
-    });
-    //if enabled YARP's HTTP request verion should be "2.0" + TLS certificate should be configured
-    //option.ListenAnyIP(81, config =>
-    //{
-    //    config.Protocols = HttpProtocols.Http1AndHttp2;
-    //    config.UseHttps();
-    //});
-});
+//builder.WebHost.UseKestrel(option =>
+//{
+//    option.ListenAnyIP(8080, config =>
+//    {
+//        config.Protocols = HttpProtocols.Http1AndHttp2;
+//    });
+//    //if enabled YARP's HTTP request verion should be "2.0" + TLS certificate should be configured
+//    //option.ListenAnyIP(81, config =>
+//    //{
+//    //    config.Protocols = HttpProtocols.Http1AndHttp2;
+//    //    config.UseHttps();
+//    //});
+//});
 
 //Redis
 builder.Services.AddStackExchangeRedisCache(options =>

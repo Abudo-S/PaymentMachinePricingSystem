@@ -42,6 +42,7 @@ namespace WeekPayModelService
             nThreadsLock = new object();
             bullyElectionLockSem = new SemaphoreSlim(1, 1);
             currentClusterCoordinatorSem = new SemaphoreSlim(1, 1);
+            clusterNodesSem = new SemaphoreSlim(1, 1);
         }
 
         public override async Task AskForPendingRequests()
@@ -635,7 +636,7 @@ namespace WeekPayModelService
             }
         }
 
-        public override bool AddClusterNode(string clusterNodeUri)
+        public async override Task<bool> AddClusterNode(string clusterNodeUri)
         {
             bool result = false;
 
@@ -645,9 +646,12 @@ namespace WeekPayModelService
 
                 if (!clusterNodeUri.Contains(machineIP))
                 {
+                    await clusterNodesSem.WaitAsync();
                     otherClusterNodes.Add(clusterNodeUri);
 
                     currentLoadBalancer.Update(otherClusterNodes);
+
+                    clusterNodesSem.Release();
 
                     if (isCoordinator) 
                     {
@@ -668,6 +672,16 @@ namespace WeekPayModelService
                         Task.Run(() => RunTasksAndAggregate(otherClusterNodes, taskFactory));
                     }
 
+                    //notify the new node of the current node presence
+                    var res = grpcCircuitRetryPolicy.ExecuteAsync(async () =>
+                    {
+                        var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.WeekPayModel.WeekPayModelClient>(clusterNodeUri);
+                        return ((MicroservicesProtos.WeekPayModel.WeekPayModelClient)clusterNodeClient).NotifyNodePresence(new GenericMessages.NotifyNodePresenceRequest()
+                        {
+                            NodeUri = this.machineIP + ":" + 80 //default port!
+                        }).Awk;
+                    });
+
                     result = true;
                 }
             }
@@ -679,7 +693,7 @@ namespace WeekPayModelService
             return result;
         }
 
-        public override bool RemoveClusterNode(string clusterNodeUri)
+        public async override Task<bool> RemoveClusterNode(string clusterNodeUri)
         {
             bool result = false;
             try
@@ -688,9 +702,11 @@ namespace WeekPayModelService
 
                 if (!clusterNodeUri.Contains(machineIP))
                 {
+                    await clusterNodesSem.WaitAsync();
                     otherClusterNodes.Remove(clusterNodeUri);
 
                     currentLoadBalancer.Update(otherClusterNodes);
+                    clusterNodesSem.Release();
 
                     if (isCoordinator)
                     {
@@ -720,6 +736,30 @@ namespace WeekPayModelService
             }
 
             return false;
+        }
+
+        public async Task<bool> AppendPresentClusterNode(string clusterNodeUri)
+        {
+            bool result = false;
+
+            try
+            {
+                log.Info($"Invoked AppendPresentClusterNode clusterNodeUri: {clusterNodeUri}");
+
+                await clusterNodesSem.WaitAsync();
+                otherClusterNodes.Add(clusterNodeUri);
+
+                currentLoadBalancer.Update(otherClusterNodes);
+                clusterNodesSem.Release();
+
+                result = true;
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, "In AppendPresentClusterNode()!");
+            }
+
+            return result;
         }
         #endregion
     }

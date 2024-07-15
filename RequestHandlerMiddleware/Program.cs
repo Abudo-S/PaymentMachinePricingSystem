@@ -39,7 +39,7 @@ builder.Services.AddResponseCompression(opts =>
 
 //Security mechanism to authenticate API user
 
-var key = Encoding.ASCII.GetBytes((string)(builder.Configuration.GetValue(typeof(string), "ServerKey") ?? "TWlkZGxld2FyZUtleQ=="));
+var key = Encoding.ASCII.GetBytes((string)(builder.Configuration.GetValue(typeof(string), "ServerKey") ?? "TWlkZGxld2FyZUtleQ==TWlkZGxld2FyZUtleQ==TWlkZGxld2FyZUtleQ=="));
 builder.Services.AddAuthentication(x =>
 {
     x.DefaultAuthenticateScheme = JwtBearerDefaults.AuthenticationScheme;
@@ -63,19 +63,19 @@ builder.Services.AddAuthorization();
 #endregion
 
 //if enabled, we can't overide ports through docker's container-command
-builder.WebHost.UseKestrel(option =>
-{
-    option.ListenAnyIP(81, config =>
-    {
-        config.Protocols = HttpProtocols.Http1AndHttp2;
-    });
-    //if enabled YARP's HTTP request verion should be "2.0" + TLS certificate should be configured
-    //option.ListenAnyIP(81, config =>
-    //{
-    //    config.Protocols = HttpProtocols.Http1AndHttp2;
-    //    config.UseHttps();
-    //});
-});
+//builder.WebHost.UseKestrel(option =>
+//{
+//    option.ListenAnyIP(81, config =>
+//    {
+//        config.Protocols = HttpProtocols.Http1AndHttp2;
+//    });
+//    //if enabled YARP's HTTP request verion should be "2.0" + TLS certificate should be configured
+//    //option.ListenAnyIP(81, config =>
+//    //{
+//    //    config.Protocols = HttpProtocols.Http1AndHttp2;
+//    //    config.UseHttps();
+//    //});
+//});
 
 //Dependency injection
 builder.Services.AddScoped<RequestHandlerMiddlewareService>();
