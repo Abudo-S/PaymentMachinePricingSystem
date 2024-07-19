@@ -315,7 +315,7 @@ namespace LibDTO.Generic
 
                 //if the current id is higher then start own election
                 //block concurrent elections
-                if (result && bullyElectionLockSem.CurrentCount > 0)
+                if (result && bullyElectionLockSem.CurrentCount > 0 && !isCoordinator)
                 {
 
                     Task.Run(async() =>

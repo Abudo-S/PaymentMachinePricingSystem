@@ -140,7 +140,7 @@ namespace TimeIntervalService
                 {
                     var result = grpcCircuitRetryPolicy.ExecuteAsync(async () =>
                                  {
-                                     var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.TimeInterval.TimeIntervalClient>(currentClusterCoordinatorIp);
+                                     var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.TimeInterval.TimeIntervalClient>(currentClusterCoordinatorIp, 8080);
                                      return ((MicroservicesProtos.TimeInterval.TimeIntervalClient)clusterNodeClient).CanIHandle(new GenericMessages.CanIHandleRequest()
                                      {
                                          RequestId = requestId,

@@ -488,27 +488,25 @@ namespace DayRateService
                 {
                     try
                     {
-                        //should exclude RpcException with StatusCode.DeadlineExceeded
-                        return await grpcCircuitRetryPolicy.ExecuteAsync(async () =>
-                        {
-                            var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(higherClusterNode);
-                            return KeyValuePair.Create(
-                                higherClusterNode,
-                                ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).CanICoordinate(new CanICoordinateRequest()
-                                {
-                                    NodeId = nodeId
-                                }, deadline: DateTime.UtcNow.AddSeconds(8)).Result
-                            );
-                        });
+                        var clusterNodeClient = GrpcClientInitializer.Instance.GetNodeClient<MicroservicesProtos.DayRate.DayRateClient>(higherClusterNode);
+                        return KeyValuePair.Create(
+                            higherClusterNode,
+                            ((MicroservicesProtos.DayRate.DayRateClient)clusterNodeClient).CanICoordinate(new CanICoordinateRequest()
+                            {
+                                NodeId = nodeId
+                            }, deadline: DateTime.UtcNow.AddSeconds(8)).Result
+                        );
                     }
-                    catch (RpcException ex) when (ex.StatusCode == StatusCode.DeadlineExceeded) //if a cluster node doesn't respond in time, then consider an acceptance
+                    catch (RpcException ex) //if a cluster node doesn't respond in time or it's unavailable, then consider an acceptance
                     {
                         return KeyValuePair.Create(higherClusterNode, true);
                     }
                 };
 
                 Regex ipRegex = new Regex(@"\b\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}\b");
-                var higherClusterNodes = otherClusterNodes.Where(clusterNode => ipRegex.Matches(clusterNode)[0].GetHashCode() > machineIP.GetHashCode()).ToList();
+                var higherClusterNodes = otherClusterNodes.Where(clusterNode => ipRegex.Matches(clusterNode)[0].Value.GetHashCode() > nodeId).ToList();
+                //log.Info("Other nodes: " + string.Join(", ", otherClusterNodes.Select(clusterNode => ipRegex.Matches(clusterNode)[0].Value.GetHashCode())));
+                //log.Info("Higher nodes: " + string.Join(", ", higherClusterNodes));
 
                 //send CanICoordinate to all higher nodes
                 var results = await RunTasksAndAggregate(higherClusterNodes, taskFactory);
@@ -517,7 +515,7 @@ namespace DayRateService
 
                 var result = !results.Any(kvp => kvp.Value == false);
 
-                if (result) //election won
+                if (result && !isCoordinator) //election won and coordinator for first time
                 {
                     await StartCoordinatorActivity();
                 }

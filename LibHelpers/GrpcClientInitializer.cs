@@ -85,12 +85,15 @@ namespace LibHelpers
         /// </summary>
         /// <param name="nodeAddr"></param>
         /// <returns></returns>
-        public ClientBase GetNodeClient<T>(string nodeAddr) where T : ClientBase
+        public ClientBase GetNodeClient<T>(string nodeAddr, int defaultPort = 80) where T : ClientBase
         {
             ClientBase client = null;
 
             try
             {
+                if (!nodeAddr.Contains("http:"))
+                    nodeAddr = "http://" + nodeAddr + ":" + defaultPort;
+
                 if (!nodesGrpcClients.ContainsKey(nodeAddr) || nodesGrpcClients[nodeAddr] == null)
                 {
                     InitializeGrpcClients<T>(new List<string>() { nodeAddr});
