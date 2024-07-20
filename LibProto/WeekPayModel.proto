@@ -102,7 +102,14 @@ service WeekPayModel {
   rpc NotifyNodePresence(GenericMessages.NotifyNodePresenceRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
-      post: "/HttpAPI/MicroservicesProtos/DayRate/NotifyNodePresence"
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/NotifyNodePresence"
+      body: "*"
+    };
+  }
+    rpc SetDefaultOperationDelay(GenericMessages.SetDefaultOperationDelayRequest) returns (GenericMessages.AsyncResult)
+  {
+      option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/WeekPayModel/SetDefaultOperationDelay"
       body: "*"
     };
   }

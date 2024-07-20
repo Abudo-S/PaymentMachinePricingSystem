@@ -102,7 +102,14 @@ service TimeInterval {
   rpc NotifyNodePresence(GenericMessages.NotifyNodePresenceRequest) returns (GenericMessages.AsyncResult)
   {
 	  option (google.api.http) = {
-      post: "/HttpAPI/MicroservicesProtos/DayRate/NotifyNodePresence"
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/NotifyNodePresence"
+      body: "*"
+    };
+  }
+    rpc SetDefaultOperationDelay(GenericMessages.SetDefaultOperationDelayRequest) returns (GenericMessages.AsyncResult)
+  {
+      option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/TimeInterval/SetDefaultOperationDelay"
       body: "*"
     };
   }

@@ -66,3 +66,7 @@ message AddOrRemoveClusterNodeRequest {
 message NotifyNodePresenceRequest {
 	string nodeUri = 1;
 }
+
+message SetDefaultOperationDelayRequest {
+	int32 delayInMilliseconds = 1;
+}

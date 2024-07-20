@@ -106,6 +106,13 @@ service DayRate {
       body: "*"
     };
   }
+  rpc SetDefaultOperationDelay(GenericMessages.SetDefaultOperationDelayRequest) returns (GenericMessages.AsyncResult)
+  {
+      option (google.api.http) = {
+      post: "/HttpAPI/MicroservicesProtos/DayRate/SetDefaultOperationDelay"
+      body: "*"
+    };
+  }
   rpc IsAlive (GenericMessages.IsAliveRequest) returns (GenericMessages.SyncResult)
   {
 	  option (google.api.http) = {
