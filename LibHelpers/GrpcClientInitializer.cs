@@ -92,7 +92,9 @@ namespace LibHelpers
             try
             {
                 if (!nodeAddr.Contains("http:"))
-                    nodeAddr = "http://" + nodeAddr + ":" + defaultPort;
+                    nodeAddr = "http://" + nodeAddr;
+                if (!nodeAddr.Contains(':'))
+                    nodeAddr = nodeAddr + ":" + defaultPort;
 
                 if (!nodesGrpcClients.ContainsKey(nodeAddr) || nodesGrpcClients[nodeAddr] == null)
                 {
