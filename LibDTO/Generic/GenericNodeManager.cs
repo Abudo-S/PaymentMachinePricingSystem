@@ -25,6 +25,8 @@ namespace LibDTO.Generic
 {
     public abstract class GenericNodeManager
     {
+        public static int AdditionalOperationDelay { get; set; } = 0;
+
         protected static readonly NLog.Logger log = NLog.LogManager.GetCurrentClassLogger();
         protected AsyncPolicy grpcCircuitRetryPolicy;
         protected AsyncPolicy redisCircuitRetryPolicy;
@@ -529,7 +531,7 @@ namespace LibDTO.Generic
 
         public string GetRequestId(string requestId)
         {
-            return requestId.Split("@")[1];
+            return requestId.Contains("@")? requestId.Split("@")[1] : requestId;
         }
     }
 }

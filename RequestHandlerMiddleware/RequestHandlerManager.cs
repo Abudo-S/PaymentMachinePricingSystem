@@ -112,7 +112,7 @@ namespace RequestHandlerMiddleware
                     await Task.Yield();
                     var res = paymentMachineClient.ReceiveResponse(new ReceiveResponseMsg()
                     {
-                        RequestId = requestId,
+                        RequestId = kvp.Value,
                         ResultType = requestType,
                         ResultJson = responseJson
                     });

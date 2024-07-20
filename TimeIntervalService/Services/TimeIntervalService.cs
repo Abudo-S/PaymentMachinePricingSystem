@@ -412,5 +412,29 @@ namespace TimeIntervalService.Services
                 Awk = false
             });
         }
+
+        public override Task<AsyncResult> SetDefaultOperationDelay(SetDefaultOperationDelayRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked SetDefaultOperationDelay with DelayInMilliseconds: {request.DelayInMilliseconds}");
+
+                TimeIntervalManager.AdditionalOperationDelay = request.DelayInMilliseconds;
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In SetDefaultOperationDelay()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
     }
 }

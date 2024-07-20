@@ -8,6 +8,7 @@ using Microsoft.AspNetCore.Components;
 using Microsoft.Extensions.Caching.Distributed;
 using LibHelpers;
 using AutoMapper;
+using static Google.Rpc.Context.AttributeContext.Types;
 
 namespace DayRateService.Services
 {
@@ -408,6 +409,30 @@ namespace DayRateService.Services
             catch (Exception ex)
             {
                 log.Error(ex, " In NotifyNodePresence()!");
+            }
+
+            return Task.FromResult(new AsyncResult
+            {
+                Awk = false
+            });
+        }
+
+        public override Task<AsyncResult> SetDefaultOperationDelay(SetDefaultOperationDelayRequest request, ServerCallContext context)
+        {
+            try
+            {
+                log.Info($"Invoked SetDefaultOperationDelay with DelayInMilliseconds: {request.DelayInMilliseconds}");
+
+                DayRateManager.AdditionalOperationDelay = request.DelayInMilliseconds;
+
+                return Task.FromResult(new AsyncResult
+                {
+                    Awk = true
+                });
+            }
+            catch (Exception ex)
+            {
+                log.Error(ex, " In SetDefaultOperationDelay()!");
             }
 
             return Task.FromResult(new AsyncResult

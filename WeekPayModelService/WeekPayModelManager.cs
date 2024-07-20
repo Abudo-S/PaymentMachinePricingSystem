@@ -150,6 +150,8 @@ namespace WeekPayModelService
 
                     if (result) //handle request type
                     {
+                        log.Info("Handling expired request with id: " + requestId);
+
                         requestTypeAction.Value.Invoke(WeekPayModelManager.Instance, new object[] { request });
                     }
                     else //since the request isn't deleted from cache, so extend message expiry with the same requestExpiry
@@ -174,7 +176,7 @@ namespace WeekPayModelService
                 log.Info($"Invoked UpsertWeekPayModel with id {dayRate.Id}");
 
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -238,7 +240,7 @@ namespace WeekPayModelService
                 log.Info($"Invoked GetWeekPayModel with id: {id}");
 
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var dbWeekPayModel = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -288,7 +290,7 @@ namespace WeekPayModelService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var dayRates = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -341,7 +343,7 @@ namespace WeekPayModelService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -399,7 +401,7 @@ namespace WeekPayModelService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 //to be implemented
 

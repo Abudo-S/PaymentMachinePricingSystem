@@ -153,6 +153,7 @@ namespace DayRateService
 
                     if (result) //handle request type
                     {
+                        log.Info("Handling expired request with id: " + requestId);
                         requestTypeAction.Value.Invoke(DayRateManager.Instance, new object[] { request });
                     }
                     else //since the request isn't deleted from cache, so extend message expiry with the same requestExpiry
@@ -177,7 +178,7 @@ namespace DayRateService
                 log.Info($"Invoked UpsertDayRate with id {dayRate.Id}");
 
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -241,7 +242,7 @@ namespace DayRateService
                 log.Info($"Invoked GetDayRate with id: {id}");
 
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var dbDayRate = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -291,7 +292,7 @@ namespace DayRateService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var dayRates = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -344,7 +345,7 @@ namespace DayRateService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -402,7 +403,7 @@ namespace DayRateService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 //to be implemented
 

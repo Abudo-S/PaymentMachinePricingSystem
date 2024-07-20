@@ -150,6 +150,7 @@ namespace TimeIntervalService
 
                     if (result) //handle request type
                     {
+                        log.Info("Handling expired request with id: " + requestId);
                         requestTypeAction.Value.Invoke(TimeIntervalManager.Instance, new object[] { request });
                     }
                     else //since the request isn't deleted from cache, so extend message expiry with the same requestExpiry
@@ -174,7 +175,7 @@ namespace TimeIntervalService
                 log.Info($"Invoked UpsertTimeInterval with id {timeInterval.Id}");
 
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -238,7 +239,7 @@ namespace TimeIntervalService
                 log.Info($"Invoked GetTimeInterval with id: {id}");
 
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var dbTimeInterval = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -288,7 +289,7 @@ namespace TimeIntervalService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var timeIntervals = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -341,7 +342,7 @@ namespace TimeIntervalService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 var res = await mongoCircuitRetryPolicy.ExecuteAsync(async () =>
                 {
@@ -399,7 +400,7 @@ namespace TimeIntervalService
             try
             {
                 //apply delay
-                await Task.Delay(delayInMilliseconds);
+                await Task.Delay(delayInMilliseconds + AdditionalOperationDelay);
 
                 //to be implemented
 
